@@ -1,0 +1,551 @@
+/*
+ * NutriTrace graphic charter on top of SB Admin 2 (Bootstrap 4).
+ * The template's markup and classes are unchanged: only colours, radius and depth are restyled.
+ * Brand green #2AA63E is used for fills and gradients; the darker #1b7f31 is used for text
+ * and links on white, where the brand green alone would be too pale to read comfortably.
+ */
+
+:root {
+    --nt-green: #2aa63e;
+    --nt-green-dark: #1b7f31;
+    --nt-green-deep: #125a23;
+    --nt-green-soft: #e9f7ec;
+    --nt-teal: #0f8f7a;
+    --nt-gradient: linear-gradient(135deg, #2aa63e 0%, #1b7f31 100%);
+    --nt-gradient-vertical: linear-gradient(180deg, #2aa63e 0%, #177a2e 55%, #125a23 100%);
+    --nt-radius: 0.9rem;
+    --nt-shadow: 0 0.35rem 1.4rem rgba(18, 90, 35, 0.09);
+}
+
+body {
+    color: #4a5548;
+    background-color: #f4f8f4;
+}
+
+#wrapper #content-wrapper {
+    background-color: #f4f8f4;
+}
+
+a {
+    color: var(--nt-green-dark);
+}
+
+a:hover {
+    color: var(--nt-green-deep);
+}
+
+/* ---------- Primary colour: blue becomes the brand green ---------- */
+
+.bg-gradient-primary {
+    background-color: var(--nt-green);
+    background-image: var(--nt-gradient-vertical);
+}
+
+.bg-primary {
+    background-color: var(--nt-green) !important;
+}
+
+.text-primary {
+    color: var(--nt-green-dark) !important;
+}
+
+a.text-primary:hover,
+a.text-primary:focus {
+    color: var(--nt-green-deep) !important;
+}
+
+.border-left-primary {
+    border-left-color: var(--nt-green) !important;
+}
+
+.border-primary {
+    border-color: var(--nt-green) !important;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: var(--nt-green-dark);
+    background-image: var(--nt-gradient);
+    border-color: transparent;
+    font-weight: 700;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:not(:disabled):not(.disabled):active,
+.btn-primary:not(:disabled):not(.disabled).active,
+.show > .btn-primary.dropdown-toggle {
+    color: #fff;
+    background-color: var(--nt-green-deep);
+    background-image: linear-gradient(135deg, #24953a 0%, #125a23 100%);
+    border-color: transparent;
+}
+
+.btn-primary.disabled,
+.btn-primary:disabled {
+    color: #fff;
+    background-color: #7fbf8b;
+    background-image: none;
+    border-color: transparent;
+}
+
+.btn-primary:focus,
+.btn-primary.focus,
+.btn-primary:not(:disabled):not(.disabled):active:focus {
+    box-shadow: 0 0 0 0.2rem rgba(42, 166, 62, 0.4);
+}
+
+.btn-outline-primary {
+    color: var(--nt-green-dark);
+    border-color: var(--nt-green);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:not(:disabled):not(.disabled):active {
+    color: #fff;
+    background-color: var(--nt-green-dark);
+    border-color: var(--nt-green-dark);
+}
+
+.btn-link {
+    color: var(--nt-green-dark);
+}
+
+.btn-link:hover {
+    color: var(--nt-green-deep);
+}
+
+.badge-primary {
+    color: #fff;
+    background-color: var(--nt-green-dark);
+}
+
+.page-link {
+    color: var(--nt-green-dark);
+}
+
+.page-link:hover {
+    color: var(--nt-green-deep);
+}
+
+.page-item.active .page-link {
+    background-color: var(--nt-green-dark);
+    border-color: var(--nt-green-dark);
+}
+
+.dropdown-item.active,
+.dropdown-item:active {
+    background-color: var(--nt-green-dark);
+}
+
+.custom-control-input:checked ~ .custom-control-label::before {
+    border-color: var(--nt-green-dark);
+    background-color: var(--nt-green-dark);
+}
+
+.custom-control-input:focus ~ .custom-control-label::before {
+    box-shadow: 0 0 0 0.2rem rgba(42, 166, 62, 0.25);
+}
+
+.form-control:focus,
+.custom-select:focus,
+.form-control-user:focus {
+    border-color: #7ccf8a;
+    box-shadow: 0 0 0 0.2rem rgba(42, 166, 62, 0.2);
+}
+
+.progress-bar {
+    background-color: var(--nt-green);
+}
+
+.alert-primary {
+    color: var(--nt-green-deep);
+    background-color: var(--nt-green-soft);
+    border-color: #c5e8cc;
+}
+
+/* ---------- Info: the template's cyan becomes a teal that sits next to the green ---------- */
+
+.text-info {
+    color: var(--nt-teal) !important;
+}
+
+.bg-info {
+    background-color: var(--nt-teal) !important;
+}
+
+.border-left-info {
+    border-left-color: var(--nt-teal) !important;
+}
+
+.badge-info {
+    color: #fff;
+    background-color: var(--nt-teal);
+}
+
+.btn-info {
+    color: #fff;
+    background-color: var(--nt-teal);
+    border-color: var(--nt-teal);
+}
+
+.btn-info:hover,
+.btn-info:focus,
+.btn-info:not(:disabled):not(.disabled):active {
+    color: #fff;
+    background-color: #0b7262;
+    border-color: #0b7262;
+}
+
+.alert-info {
+    color: #0b5c4f;
+    background-color: #e2f5f1;
+    border-color: #bfe7df;
+}
+
+.alert-info .alert-link {
+    color: #07443a;
+}
+
+/* ---------- Sidebar ---------- */
+
+.sidebar {
+    box-shadow: 0.25rem 0 1.5rem rgba(18, 90, 35, 0.18);
+}
+
+.sidebar .sidebar-brand {
+    height: 5rem;
+}
+
+.sidebar .sidebar-brand .sidebar-brand-text {
+    text-transform: none;
+    font-size: 1.25rem;
+    letter-spacing: 0;
+}
+
+.sidebar .sidebar-brand .sidebar-brand-icon {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.sidebar-dark .sidebar-heading {
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 0.08em;
+}
+
+.sidebar .nav-item .nav-link {
+    padding: 0.7rem 1rem;
+    margin: 0.1rem 0.6rem;
+    width: auto;
+    border-radius: 0.65rem;
+    transition: background-color 0.15s ease;
+}
+
+.sidebar-dark .nav-item .nav-link {
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.sidebar-dark .nav-item .nav-link i {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.sidebar-dark .nav-item .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.sidebar-dark .nav-item.active .nav-link {
+    background-color: #fff;
+    color: var(--nt-green-deep);
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.12);
+}
+
+.sidebar-dark .nav-item.active .nav-link i {
+    color: var(--nt-green-dark);
+}
+
+.sidebar-dark .nav-item .nav-link.disabled {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.sidebar.toggled .nav-item .nav-link {
+    margin: 0.1rem 0.4rem;
+}
+
+/* ---------- Topbar, cards, tables ---------- */
+
+.topbar {
+    box-shadow: var(--nt-shadow) !important;
+}
+
+.img-profile {
+    object-fit: cover;
+    border: 2px solid var(--nt-green-soft);
+}
+
+.card {
+    border: 0;
+    border-radius: var(--nt-radius);
+}
+
+.card.shadow,
+.shadow {
+    box-shadow: var(--nt-shadow) !important;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #e6efe7;
+}
+
+.card-header:first-child {
+    border-radius: var(--nt-radius) var(--nt-radius) 0 0;
+}
+
+.card[class*='border-left-'] {
+    border-left-width: 0.3rem !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card[class*='border-left-']:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.6rem 1.8rem rgba(18, 90, 35, 0.14) !important;
+}
+
+.btn {
+    border-radius: 0.6rem;
+}
+
+.btn-sm {
+    border-radius: 0.5rem;
+}
+
+.btn-circle,
+.btn-circle.btn-sm {
+    border-radius: 50%;
+}
+
+.btn-user {
+    border-radius: 10rem;
+}
+
+.badge {
+    border-radius: 0.45rem;
+    padding: 0.38em 0.6em;
+    font-weight: 700;
+}
+
+.form-control,
+.custom-select {
+    border-radius: 0.6rem;
+    border-color: #d5e2d7;
+}
+
+.modal-content {
+    border: 0;
+    border-radius: var(--nt-radius);
+}
+
+.table thead th {
+    border-bottom-width: 1px;
+    background-color: #f6faf6;
+    color: #3a4638;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.table-bordered,
+.table-bordered td,
+.table-bordered th {
+    border-color: #e6efe7;
+}
+
+.table tbody tr:hover {
+    background-color: #f8fcf8;
+}
+
+.sticky-footer {
+    background-color: transparent !important;
+}
+
+h1.h3 {
+    font-weight: 800;
+    color: #24331f !important;
+}
+
+.avatar-preview {
+    width: 6rem;
+    height: 6rem;
+    object-fit: cover;
+}
+
+/* ---------- Authentication pages: centred card over a full-screen photo ---------- */
+
+.auth-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1rem;
+    background-color: #17331c;
+    background-image:
+        linear-gradient(180deg, rgba(13, 46, 21, 0.78) 0%, rgba(18, 90, 35, 0.62) 55%, rgba(13, 46, 21, 0.86) 100%),
+        url('../../img/shared/olive-grove.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.auth-brand {
+    display: inline-flex;
+    align-items: center;
+    color: #fff;
+    font-size: 1.9rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.auth-brand:hover,
+.auth-brand:focus {
+    color: #fff;
+    text-decoration: none;
+}
+
+.auth-brand-icon {
+    width: 3rem;
+    height: 3rem;
+    margin-right: 0.75rem;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    background-image: var(--nt-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.auth-tagline {
+    max-width: 32rem;
+    margin: 0.9rem auto 1.75rem;
+    color: #fff;
+    font-weight: 600;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 31rem;
+    border-radius: 1.1rem;
+    overflow: hidden;
+    box-shadow: 0 1.5rem 3.5rem rgba(0, 0, 0, 0.35) !important;
+}
+
+.auth-card.auth-card-wide {
+    max-width: 44rem;
+}
+
+.auth-card-header {
+    padding: 1.9rem 2rem 1.6rem;
+    color: #fff;
+    text-align: center;
+    background-image: linear-gradient(135deg, #125a23 0%, #2aa63e 100%);
+}
+
+.auth-card-header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #fff !important;
+}
+
+.auth-card-header p {
+    margin: 0.35rem 0 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+}
+
+.auth-card-body {
+    padding: 2rem 2.25rem 1.5rem;
+    background-color: #fff;
+}
+
+.auth-card-body label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #3a4638;
+}
+
+.auth-card-body .form-control-user,
+.auth-card-body .custom-select-user {
+    height: 3.1rem;
+    padding: 0.75rem 1.1rem;
+    font-size: 0.95rem;
+    border-radius: 10rem;
+    background-color: #f1f7f2;
+    border: 1px solid #d5e2d7;
+}
+
+.auth-card-body .form-control-user:focus,
+.auth-card-body .custom-select-user:focus {
+    background-color: #fff;
+}
+
+.auth-card-body .btn-user {
+    padding: 0.85rem 1rem;
+    font-size: 0.95rem;
+}
+
+.auth-card-footer {
+    padding: 1.1rem 2rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #5b6659;
+    background-color: #eef4ef;
+    border-top: 1px solid #dfe9e0;
+}
+
+.auth-card-footer a {
+    font-weight: 800;
+}
+
+.auth-back {
+    margin-top: 1.25rem;
+    color: #fff;
+    font-size: 0.9rem;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.auth-back:hover {
+    color: #fff;
+}
+
+.auth-page .error {
+    color: var(--nt-green-dark);
+}
+
+@media (max-width: 575.98px) {
+    .auth-card-body {
+        padding: 1.5rem 1.25rem 1rem;
+    }
+
+    .auth-page {
+        background-attachment: scroll;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
+
+    .card[class*='border-left-']:hover {
+        transform: none;
+    }
+}
