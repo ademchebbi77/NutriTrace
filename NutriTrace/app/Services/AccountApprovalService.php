@@ -16,6 +16,12 @@ class AccountApprovalService
     {
         DB::transaction(function () use ($user, $admin) {
             $this->review($user, $admin, AccountStatus::APPROVED, active: true);
+
+            // An admin approval vouches for the account: the user can sign in without clicking the email link.
+            if (! $user->hasVerifiedEmail()) {
+                $user->markEmailAsVerified();
+            }
+
             $this->audit->log('account.approved', $user, $user->email);
         });
 

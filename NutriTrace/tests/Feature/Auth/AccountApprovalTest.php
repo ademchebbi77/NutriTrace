@@ -87,6 +87,36 @@ class AccountApprovalTest extends TestCase
         $this->actingAs($user)->get('/transformateur')->assertOk();
     }
 
+    public function test_an_approved_account_can_be_used_without_verifying_the_email(): void
+    {
+        Notification::fake();
+
+        $admin = User::factory()->admin()->create();
+        $user = User::factory()->producer()->pending()->unverified()->create();
+
+        $this->actingAs($user)->get('/producteur')->assertRedirect('/verify-email');
+
+        $this->actingAs($admin)
+            ->post("/admin/comptes-en-attente/{$user->id}/approuver")
+            ->assertSessionHas('success');
+
+        $this->assertTrue($user->fresh()->hasVerifiedEmail());
+        $this->actingAs($user->fresh())->get('/producteur')->assertOk();
+    }
+
+    public function test_rejecting_an_account_does_not_verify_its_email(): void
+    {
+        Notification::fake();
+
+        $admin = User::factory()->admin()->create();
+        $user = User::factory()->producer()->pending()->unverified()->create();
+
+        $this->actingAs($admin)
+            ->post("/admin/comptes-en-attente/{$user->id}/rejeter", ['rejection_reason' => 'Documents manquants.']);
+
+        $this->assertFalse($user->fresh()->hasVerifiedEmail());
+    }
+
     public function test_admin_can_reject_a_pending_account_with_a_reason(): void
     {
         Notification::fake();
