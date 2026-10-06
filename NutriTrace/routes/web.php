@@ -4,13 +4,9 @@ use App\Http\Controllers\AccountStatusController;
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrganizationController;
-use App\Http\Controllers\Producer;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\PublicSite\CatalogController;
-use App\Http\Controllers\PublicSite\CompareController;
 use App\Http\Controllers\PublicSite\FeedbackController;
 use App\Http\Controllers\PublicSite\HomeController;
-use App\Http\Controllers\PublicSite\TraceController;
 use App\Http\Controllers\RoleDashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,23 +19,11 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('throttle:public')->group(function () {
     Route::get('/', HomeController::class)->name('home');
     Route::get('/comment-ca-marche', [HomeController::class, 'howItWorks'])->name('how-it-works');
-
-    Route::get('/produits', [CatalogController::class, 'index'])->name('catalog.index');
-    Route::get('/produits/{product}', [CatalogController::class, 'show'])->name('catalog.show');
-    Route::get('/recherche', [CatalogController::class, 'lookup'])->name('lookup');
-    Route::get('/comparer', CompareController::class)->name('compare');
-
-    // Public traceability page of a lot, target of the QR code.
-    Route::get('/trace/{token}', [TraceController::class, 'show'])->name('trace.show');
-    Route::get('/trace/{token}/certifications/{certification}/preuve', [TraceController::class, 'proof'])->name('trace.proof');
 });
 
-// Actions of a signed-in visitor on the public pages.
+// Actions of a signed-in visitor on the public pages (Avis et Signalements).
 Route::middleware(['auth', 'verified', 'active', 'throttle:20,1'])->group(function () {
-    Route::post('/trace/{token}/avis', [FeedbackController::class, 'review'])->name('trace.review');
     Route::delete('/avis/{review}', [FeedbackController::class, 'destroyReview'])->name('reviews.destroy');
-    Route::post('/trace/{token}/signalement', [FeedbackController::class, 'report'])->name('trace.report');
-    Route::post('/produits/{product}/favori', [FeedbackController::class, 'toggleFavorite'])->name('favorites.toggle');
 });
 
 /*
@@ -83,7 +67,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
     });
 
     Route::prefix('producteur')->name('producteur.')->middleware('role:PRODUCTEUR')->group(function () {
-        Route::get('/', Producer\DashboardController::class)->name('dashboard');
+        Route::get('/', RoleDashboardController::class)->name('dashboard');
     });
 
     Route::prefix('transformateur')->name('transformateur.')->middleware('role:TRANSFORMATEUR')->group(function () {
@@ -94,14 +78,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/', RoleDashboardController::class)->name('dashboard');
     });
 
-    // Business modules: one routes file per module (the consumer area is in community.php).
-    require __DIR__.'/modules/products.php';
-    require __DIR__.'/modules/productions.php';
-    require __DIR__.'/modules/lots.php';
-    require __DIR__.'/modules/transformations.php';
-    require __DIR__.'/modules/transports.php';
-    require __DIR__.'/modules/distributions.php';
-    require __DIR__.'/modules/certifications.php';
+    // Business modules: Impact Environnemental et Avis/Signalements (Community).
     require __DIR__.'/modules/impacts.php';
     require __DIR__.'/modules/community.php';
 });
