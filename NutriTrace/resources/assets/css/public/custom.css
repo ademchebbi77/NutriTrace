@@ -1,0 +1,428 @@
+/*
+ * NutriTrace graphic charter on top of the Start Bootstrap public templates (Bootstrap 5).
+ * The templates' markup and classes are unchanged: only colours, radius and depth are restyled.
+ * Brand green #2AA63E is used for fills and gradients; the darker #1b7f31 is used for text
+ * and links on white, where the brand green alone would be too pale to read comfortably.
+ */
+
+:root {
+    --nt-green: #2aa63e;
+    --nt-green-dark: #1b7f31;
+    --nt-green-deep: #125a23;
+    --nt-green-soft: #e9f7ec;
+    --nt-teal: #0f8f7a;
+    --nt-gradient: linear-gradient(135deg, #2aa63e 0%, #1b7f31 100%);
+    --nt-gradient-deep: linear-gradient(135deg, #125a23 0%, #2aa63e 100%);
+    --nt-radius: 1rem;
+    --nt-shadow: 0 0.4rem 1.5rem rgba(18, 90, 35, 0.1);
+
+    /* Bootstrap 5 theme variables: blue becomes the brand green, cyan becomes teal. */
+    --bs-primary: #2aa63e;
+    --bs-primary-rgb: 42, 166, 62;
+    --bs-info: #0f8f7a;
+    --bs-info-rgb: 15, 143, 122;
+    --bs-success: #1b7f31;
+    --bs-success-rgb: 27, 127, 49;
+    --bs-link-color: #1b7f31;
+    --bs-link-hover-color: #125a23;
+    --bs-body-color: #2f3a2d;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #fbfdfb;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+    --bs-btn-border-radius: 10rem;
+    --bs-btn-font-weight: 700;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+}
+
+.btn-sm {
+    --bs-btn-border-radius: 10rem;
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+}
+
+.btn-lg {
+    --bs-btn-border-radius: 10rem;
+}
+
+.btn-primary {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: #1b7f31;
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #125a23;
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-focus-shadow-rgb: 42, 166, 62;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #125a23;
+    --bs-btn-active-border-color: transparent;
+    --bs-btn-disabled-bg: #7fbf8b;
+    --bs-btn-disabled-border-color: transparent;
+    background-image: var(--nt-gradient);
+    box-shadow: 0 0.35rem 1rem rgba(27, 127, 49, 0.28);
+}
+
+.btn-primary:hover,
+.btn-primary:focus-visible {
+    background-image: linear-gradient(135deg, #24953a 0%, #125a23 100%);
+}
+
+/* The templates' dark buttons become the brand colour too. */
+.btn-dark {
+    --bs-btn-bg: #1b7f31;
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-bg: #125a23;
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-bg: #125a23;
+    --bs-btn-focus-shadow-rgb: 42, 166, 62;
+    background-image: var(--nt-gradient);
+}
+
+.btn-outline-dark {
+    --bs-btn-color: #1b7f31;
+    --bs-btn-border-color: #2aa63e;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #1b7f31;
+    --bs-btn-hover-border-color: #1b7f31;
+    --bs-btn-active-bg: #125a23;
+    --bs-btn-active-border-color: #125a23;
+    --bs-btn-focus-shadow-rgb: 42, 166, 62;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #7ccf8a;
+    box-shadow: 0 0 0 0.25rem rgba(42, 166, 62, 0.2);
+}
+
+.form-control,
+.form-select {
+    border-radius: 0.75rem;
+}
+
+.pagination {
+    --bs-pagination-color: #1b7f31;
+    --bs-pagination-hover-color: #125a23;
+    --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(42, 166, 62, 0.25);
+    --bs-pagination-active-bg: #1b7f31;
+    --bs-pagination-active-border-color: #1b7f31;
+    gap: 0.25rem;
+}
+
+.pagination .page-link {
+    border-radius: 0.6rem;
+}
+
+/* ---------- Navigation and footer ---------- */
+
+.navbar.bg-light {
+    background-color: rgba(255, 255, 255, 0.96) !important;
+    box-shadow: 0 0.15rem 1rem rgba(18, 90, 35, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
+
+.navbar-brand {
+    font-weight: 800;
+    font-size: 1.35rem;
+    color: #125a23 !important;
+}
+
+.navbar-brand i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    margin-right: 0.5rem !important;
+    border-radius: 50%;
+    color: #fff !important;
+    background-image: var(--nt-gradient);
+    font-size: 1.1rem;
+    vertical-align: middle;
+}
+
+.navbar-light .navbar-nav .nav-link {
+    font-weight: 600;
+    border-radius: 10rem;
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+}
+
+.navbar-light .navbar-nav .nav-link.active {
+    color: #125a23;
+    background-color: var(--nt-green-soft);
+}
+
+footer.footer {
+    background-color: #12301a !important;
+    color: #d6e6d8;
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+}
+
+footer.footer a {
+    color: #fff;
+}
+
+footer.footer .text-muted {
+    color: #b7cdbb !important;
+}
+
+footer.footer .text-success {
+    color: #7ed98d !important;
+}
+
+/* ---------- Headers ---------- */
+
+/* Landing Page masthead and call to action: the olive grove under a green veil. */
+header.masthead,
+.call-to-action {
+    background-color: #17331c;
+    background-image:
+        linear-gradient(180deg, rgba(13, 46, 21, 0.72) 0%, rgba(18, 90, 35, 0.58) 60%, rgba(13, 46, 21, 0.82) 100%),
+        url('../../img/shared/olive-grove.jpg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+}
+
+header.masthead:before,
+.call-to-action:before {
+    display: none;
+}
+
+header.masthead {
+    padding-top: 9rem;
+    padding-bottom: 9rem;
+}
+
+header.masthead h1 {
+    font-weight: 800;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+header.masthead .form-control-lg {
+    border: 0;
+    border-radius: 10rem;
+    padding-left: 1.5rem;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.25);
+}
+
+/* Shop Homepage header band. */
+header.bg-dark {
+    background-color: #125a23 !important;
+    background-image: var(--nt-gradient-deep);
+}
+
+header.bg-dark .text-white-50 {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* ---------- Sections and cards ---------- */
+
+section.bg-light,
+.features-icons.bg-light,
+.testimonials.bg-light {
+    background-color: #f1f8f2 !important;
+}
+
+.features-icons .features-icons-item .features-icons-icon {
+    width: 6rem;
+    height: 6rem;
+    margin: 0 auto 1.25rem;
+    border-radius: 50%;
+    background-color: #fff;
+    box-shadow: var(--nt-shadow);
+}
+
+.features-icons .features-icons-item .features-icons-icon i {
+    font-size: 2.6rem;
+    color: var(--nt-green-dark) !important;
+}
+
+.card {
+    --bs-card-border-radius: var(--nt-radius);
+    --bs-card-inner-border-radius: calc(var(--nt-radius) - 1px);
+    --bs-card-border-color: #e3ede4;
+    box-shadow: var(--nt-shadow);
+    overflow: hidden;
+}
+
+/* Product cards lift on hover. */
+.row-cols-2 > .col > .card,
+.row-cols-md-3 > .col > .card {
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.row-cols-2 > .col > .card:hover,
+.row-cols-md-3 > .col > .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0.9rem 2.2rem rgba(18, 90, 35, 0.18);
+}
+
+.card.card-body.bg-light {
+    background-color: #fff !important;
+    border: 1px solid #e3ede4 !important;
+}
+
+.table > thead.table-light th,
+.table-light {
+    --bs-table-bg: #f1f8f2;
+}
+
+.badge {
+    --bs-badge-border-radius: 10rem;
+    --bs-badge-padding-x: 0.75em;
+    --bs-badge-padding-y: 0.45em;
+}
+
+.alert {
+    --bs-alert-border-radius: 0.85rem;
+}
+
+.modal-content {
+    --bs-modal-border-radius: var(--nt-radius);
+    border: 0;
+}
+
+h2.fw-bolder {
+    color: #17331c;
+}
+
+/* ---------- NutriTrace components ---------- */
+
+/* Environmental grade A to E: dark text on light grades keeps the contrast readable. */
+.grade-badge {
+    font-size: 0.85rem;
+}
+
+.grade-a { background-color: #1b7f31; color: #fff; }
+.grade-b { background-color: #7fc25a; color: #10210a; }
+.grade-c { background-color: #f1c232; color: #2b2300; }
+.grade-d { background-color: #e69138; color: #2b1700; }
+.grade-e { background-color: #b02a1c; color: #fff; }
+
+.grade-letter {
+    width: 6.5rem;
+    height: 6.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.2rem;
+    font-weight: 800;
+    box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.15);
+}
+
+/* Origin of an environmental figure. */
+.source-badge { font-weight: 700; }
+.source-measured { background-color: #1b7f31; color: #fff; }
+.source-provided { background-color: #0f8f7a; color: #fff; }
+.source-calculated { background-color: #5c636a; color: #fff; }
+
+/* Transparency score ring. */
+.trust-score {
+    width: 5.25rem;
+    height: 5.25rem;
+    border-radius: 50%;
+    border: 0.45rem solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.7rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+/* Vertical journey timeline built with Bootstrap cards. */
+.timeline {
+    position: relative;
+    padding-left: 3.25rem;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 1.2rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 3px;
+    border-radius: 3px;
+    background-image: linear-gradient(180deg, #2aa63e, #b9dfc0);
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -3.25rem;
+    top: 0.6rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border: 3px solid #f1f8f2;
+    box-shadow: 0 0.2rem 0.6rem rgba(0, 0, 0, 0.15);
+}
+
+.timeline-marker.bg-warning {
+    color: #212529;
+}
+
+#journeyMap {
+    border-radius: var(--nt-radius);
+    z-index: 0;
+}
+
+/* Home page showcases use an icon tile instead of the template's stock photos. */
+.showcase .showcase-tile {
+    min-height: 22rem;
+    font-size: 7rem;
+}
+
+.showcase-tile-1 { background: linear-gradient(135deg, #125a23, #2aa63e); }
+.showcase-tile-2 { background: linear-gradient(135deg, #2aa63e, #8fd16a); }
+.showcase-tile-3 { background: linear-gradient(135deg, #0f8f7a, #2aa63e); }
+
+.testimonials .display-4 {
+    color: var(--nt-green-dark) !important;
+}
+
+/* The QR code scales with its container. */
+#avis svg {
+    max-width: 100%;
+    height: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        scroll-behavior: auto !important;
+        transition: none !important;
+    }
+
+    .row-cols-2 > .col > .card:hover,
+    .row-cols-md-3 > .col > .card:hover {
+        transform: none;
+    }
+}

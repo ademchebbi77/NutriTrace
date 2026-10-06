@@ -1,0 +1,67 @@
+<?php
+
+return [
+    'title' => 'Transformations',
+    'singular' => 'Transformation',
+    'add' => 'Nouvelle transformation',
+    'create_title' => 'Enregistrer une transformation',
+    'show_title' => 'Transformation du :date',
+    'list' => 'Liste des transformations',
+    'empty' => 'Aucune transformation pour le moment.',
+    'no_lots' => 'Vous n\'avez aucun lot disponible à transformer. Les lots apparaissent ici après la confirmation de leur réception.',
+    'need_product' => 'Créez d\'abord le produit obtenu (par exemple « Huile d\'olive ») pour pouvoir enregistrer une transformation.',
+    'final_notice' => 'Une transformation est définitive : elle consomme les lots sources et crée un nouveau lot relié à ses origines.',
+    'created' => 'La transformation a été enregistrée et le lot :lot a été créé.',
+
+    'sections' => [
+        'inputs' => 'Lots utilisés',
+        'output' => 'Produit obtenu',
+        'process' => 'Procédé et ressources',
+        'output_lot' => 'Lot obtenu',
+    ],
+
+    'fields' => [
+        'available' => 'Disponible',
+        'quantity_used' => 'Quantité utilisée',
+        'inputs_help' => 'Indiquez la quantité prélevée sur chaque lot utilisé ; laissez vide les lots non utilisés.',
+        'output_product' => 'Produit obtenu',
+        'choose_product' => 'Choisir un produit',
+        'output_quantity' => 'Quantité obtenue',
+        'output_unit' => 'Unité',
+        'transformation_date' => 'Date de transformation',
+        'expiration_date' => 'Date limite de consommation (facultatif)',
+        'process_description' => 'Description du procédé',
+        'process_help' => 'Par exemple : lavage, broyage, extraction à froid, filtration, mise en bouteille.',
+        'energy_used_kwh' => 'Énergie utilisée (kWh)',
+        'water_used_l' => 'Eau utilisée (litres)',
+        'resources_help' => 'Facultatif. Ces données alimentent le calcul de l\'empreinte environnementale.',
+        'date' => 'Date',
+        'inputs' => 'Lots sources',
+        'output' => 'Lot obtenu',
+        'yield' => 'Rendement',
+        'transformer' => 'Transformateur',
+        'location' => 'Lieu',
+        'origin' => 'Origine',
+        'not_declared' => 'Non déclaré',
+    ],
+
+    'attributes' => [
+        'inputs' => 'lots utilisés',
+        'output_product_id' => 'produit obtenu',
+        'output_quantity' => 'quantité obtenue',
+        'output_unit' => 'unité',
+        'transformation_date' => 'date de transformation',
+        'expiration_date' => 'date limite de consommation',
+        'process_description' => 'description du procédé',
+        'energy_used_kwh' => 'énergie utilisée',
+        'water_used_l' => 'eau utilisée',
+    ],
+
+    'validation' => [
+        'no_input' => 'Indiquez la quantité utilisée pour au moins un lot.',
+        'input_unavailable' => 'Un des lots choisis n\'est plus disponible.',
+        'input_too_much' => 'La quantité utilisée du lot :lot dépasse le disponible (:max).',
+        'before_source' => 'La transformation ne peut pas être antérieure à la production du lot :lot.',
+        'mixed_units' => 'Les lots utilisés doivent être exprimés dans la même unité.',
+    ],
+];
