@@ -1,0 +1,56 @@
+<?php
+
+return [
+    'title' => 'Lots',
+    'singular' => 'Lot',
+    'show_title' => 'Lot :number',
+    'edit_title' => 'Modifier le lot :number',
+    'list' => 'Liste des lots',
+    'empty' => 'Aucun lot pour le moment.',
+    'created_by_production' => 'Les lots sont créés automatiquement à partir d\'une production ou d\'une transformation.',
+    'information' => 'Informations du lot',
+    'origin_card' => 'Origine',
+    'from_production' => 'Issu de la production du :date',
+    'from_transformation' => 'Issu d\'une transformation',
+    'expired' => 'Périmé',
+    'held_by_you' => 'En votre possession',
+    'updated' => 'Le lot a été mis à jour.',
+    'journey' => 'Parcours du lot',
+    'chain_valid' => 'Journal intègre (:count événements)',
+    'chain_broken' => 'Journal modifié après coup',
+    'public_page' => 'Page publique',
+    'label' => 'Étiquette QR',
+    'declare_impact' => 'Données environnementales',
+
+    'fields' => [
+        'lot_number' => 'Numéro de lot',
+        'product' => 'Produit',
+        'quantity' => 'Quantité restante',
+        'initial_quantity' => 'Quantité initiale',
+        'production_date' => 'Date de production',
+        'expiration_date' => 'Date limite de consommation',
+        'status' => 'Statut',
+        'grade' => 'Note environnementale',
+        'holder' => 'Détenteur actuel',
+        'producer' => 'Producteur',
+        'location' => 'Lieu de production',
+        'method' => 'Méthode',
+        'public_token' => 'Jeton public (QR code)',
+        'none' => 'Non renseignée',
+    ],
+
+    'attributes' => [
+        'expiration_date' => 'date limite de consommation',
+    ],
+
+    'dashboard' => [
+        'products' => 'Produits',
+        'productions' => 'Productions',
+        'lots_held' => 'Lots en ma possession',
+        'lots_transferred' => 'Lots transférés',
+        'per_month' => 'Productions par mois',
+        'by_status' => 'Mes lots par statut',
+        'latest' => 'Dernières productions',
+        'no_data' => 'Aucune production enregistrée pour le moment.',
+    ],
+];
