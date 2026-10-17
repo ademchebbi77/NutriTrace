@@ -114,6 +114,49 @@ return [
         ],
     ],
 
+    // Module Transformation - Lots.
+    'transformation' => [
+        'title' => 'Contrôle IA de la transformation',
+        'check' => 'Vérifier avec l\'IA',
+        'thinking' => 'L\'IA vérifie les quantités et les ressources…',
+        'form_help' => 'Une transformation ne peut plus être modifiée après l\'enregistrement : faites vérifier par l\'IA locale la quantité produite, l\'énergie, l\'eau et les lots sources.',
+        'incomplete' => 'Complétez d\'abord le formulaire :',
+        'unavailable' => 'Le service d\'IA local ne répond pas : contrôle impossible pour le moment.',
+        'pending_title' => 'L\'IA a relevé un point à vérifier',
+        'confirm' => 'J\'ai vérifié ces valeurs et je confirme l\'enregistrement',
+        'expected_output' => 'Production attendue pour ces lots : :min à :max :unit',
+        'expected_resources' => 'Énergie attendue : :emin à :emax kWh · eau : :wmin à :wmax L',
+        'risk' => 'Contrôle IA',
+        'risk_value' => 'Risque : :value %',
+        'explain' => 'Expliquer avec l\'IA',
+        'explained' => 'Explication générée.',
+        'admin_help' => 'Contrôle calculé par un modèle d\'apprentissage automatique local à partir des rendements, énergie et eau habituels de chaque type de transformation et de la fraîcheur des lots sources.',
+        'checked_before_saving' => 'Contrôle fait par l\'IA locale avant l\'enregistrement.',
+        'labels' => [
+            'normal' => 'Cohérente',
+            'yield_too_high' => 'Rendement impossible',
+            'sources_expired' => 'Lots sources périmés',
+            'yield_too_low' => 'Rendement très faible',
+            'energy_too_low' => 'Énergie sous-déclarée',
+            'water_too_low' => 'Eau sous-déclarée',
+            'energy_too_high' => 'Énergie anormalement élevée',
+            'water_too_high' => 'Eau anormalement élevée',
+            'resources_missing' => 'Ressources non déclarées',
+        ],
+    ],
+
+    'expiry' => [
+        'column' => 'Date limite (IA)',
+        'help' => 'Durée de conservation estimée par un modèle de régression local à partir du produit, de sa catégorie et de son unité, comparée à la date limite saisie.',
+        'suggested' => 'Suggérée : :date',
+        'labels' => [
+            'plausible' => 'Plausible',
+            'too_long' => 'Trop lointaine',
+            'too_short' => 'Trop proche',
+            'missing' => 'Manquante',
+        ],
+    ],
+
     'admin' => [
         'title' => 'IA locale',
         'service' => 'Service d\'IA',
@@ -128,11 +171,14 @@ return [
         'modules' => [
             'transport' => 'Transport - Traçabilité',
             'distribution' => 'Distribution - Certification',
+            'transformation' => 'Transformation - Lots',
         ],
         'classifier_names' => [
             'anomaly' => 'Anomalies de transport',
             'cert' => 'Risque des certificats',
             'reception' => 'Contrôle de réception',
+            'transformation' => 'Contrôle des transformations',
+            'shelf' => 'Durée de conservation (régression)',
         ],
         'accuracy' => 'Justesse (test)',
         'real_accuracy' => 'Sur les données réelles',

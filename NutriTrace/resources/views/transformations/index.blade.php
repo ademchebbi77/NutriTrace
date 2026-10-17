@@ -32,6 +32,7 @@
                                 <th>{{ __('transformations.fields.yield') }}</th>
                                 @if (auth()->user()->isAdmin())
                                     <th>{{ __('transformations.fields.transformer') }}</th>
+                                    <th>{{ __('ai.transformation.risk') }} <i class="fas fa-robot fa-xs text-gray-500" title="{{ __('ai.transformation.admin_help') }}"></i></th>
                                 @endif
                                 <th class="no-sort">{{ __('ui.actions') }}</th>
                             </tr>
@@ -56,6 +57,17 @@
                                     </td>
                                     @if (auth()->user()->isAdmin())
                                         <td>{{ $transformation->transformer->displayName() }}</td>
+                                        @php($check = $checks[$transformation->id] ?? null)
+                                        <td data-order="{{ $check?->risk ?? -1 }}">
+                                            @if ($check)
+                                                <span class="badge badge-{{ $check->color() }}" title="{{ implode(' ', $check->reasons) }}">{{ $check->labelText() }}</span>
+                                                @if ($check->is_anomaly)
+                                                    <br><span class="small text-gray-600">{{ number_format($check->risk * 100, 0) }} %</span>
+                                                @endif
+                                            @else
+                                                <span class="small text-gray-500">{{ __('ai.certification.not_analyzed') }}</span>
+                                            @endif
+                                        </td>
                                     @endif
                                     <td>
                                         <a href="{{ area_route('transformations.show', $transformation) }}" class="btn btn-info btn-circle btn-sm"

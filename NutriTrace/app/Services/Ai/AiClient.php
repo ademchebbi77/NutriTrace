@@ -128,6 +128,33 @@ class AiClient
     }
 
     /**
+     * @param  array<string, mixed>  $transformation  See TransformationAiContext.
+     * @return ?array{is_anomaly: bool, label: string, confidence: float, risk: float, reasons: list<string>, expected: array<string, mixed>, explanation: ?string, model: string}
+     */
+    public function checkTransformation(array $transformation, bool $explain, string $audience): ?array
+    {
+        return $this->post('/transformation/check', ['transformation' => $transformation, 'explain' => $explain, 'audience' => $audience]);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $transformations
+     * @return ?list<array<string, mixed>>
+     */
+    public function checkTransformations(array $transformations): ?array
+    {
+        return $this->post('/transformation/check/batch', ['transformations' => $transformations])['results'] ?? null;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $lots  See TransformationAiContext::forLotExpiry().
+     * @return ?list<array<string, mixed>>
+     */
+    public function lotsExpiry(array $lots): ?array
+    {
+        return $this->post('/lots/expiry/batch', ['lots' => $lots])['results'] ?? null;
+    }
+
+    /**
      * Administration of the service (admin page): returns [ok, body]. Unlike the other
      * calls it reports why a request was refused (a run already in progress...).
      *

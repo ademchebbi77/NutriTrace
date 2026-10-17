@@ -25,13 +25,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from nutritrace_ai import certificates, qa, reception, stock_qa, synth  # noqa: E402
+from nutritrace_ai import certificates, qa, reception, stock_qa, synth, transformations  # noqa: E402
 from nutritrace_ai import synth_distribution as dsynth  # noqa: E402
+from nutritrace_ai import synth_transformation as tsynth  # noqa: E402
 from nutritrace_ai.config import EXPORT_DIR, MODULES  # noqa: E402
 from nutritrace_ai.explain import explain  # noqa: E402
 from nutritrace_ai.features import LABELS, report, rule_label  # noqa: E402
 from nutritrace_ai.pdf_text import extract  # noqa: E402
-from nutritrace_ai.prompts import certificate_messages, chat_messages, explain_messages, reception_messages, stock_messages  # noqa: E402
+from nutritrace_ai.prompts import (certificate_messages, chat_messages, explain_messages, reception_messages,  # noqa: E402
+                                   stock_messages, transformation_messages)
 
 
 def load(name: str) -> list[dict]:
@@ -130,6 +132,28 @@ def distribution(args, rng) -> tuple[list[dict], list[dict]]:
     return train, val
 
 
+# --- transformation - lots ------------------------------------------------------------------
+
+def transformation_rows(payloads: list[dict], rng: random.Random, source: str) -> list[dict]:
+    rows = []
+    for payload in payloads:
+        label = transformations.rule_label(payload)
+        # The same check is explained to the transformer (before saving) or to the admin.
+        audience = rng.choice(["transformer", "transformer", "admin"])
+        messages = transformation_messages(transformations.report(payload, label, rng.uniform(0.75, 1.0), audience), audience)
+        first = transformations.reasons(payload, label)[:1]
+        rows.append({"task": "transformation", "intent": label, "audience": audience, "source": source, "checks": [r[:40] for r in first],
+                     "messages": messages + [{"role": "assistant", "content": transformations.explain(payload, label, audience, rng)}]})
+    return rows
+
+
+def transformation(args, rng) -> tuple[list[dict], list[dict]]:
+    real = load("transformations.json")
+    print(f"Real transformations exported from NutriTrace: {len(real)}" + ("" if real else " (run php artisan ai:export first)"))
+    payloads = real * 3 + [tsynth.transformation(rng) for _ in range(args.synthetic or 1500)]
+    return split(transformation_rows(payloads, rng, "mixed"), args.val_share, rng)
+
+
 def write(path: Path, rows: list[dict]) -> None:
     with path.open("w", encoding="utf-8") as handle:
         for row in rows:
@@ -148,7 +172,7 @@ def main() -> None:
     args = parser.parse_args()
     rng = random.Random(args.seed)
 
-    train, val = (transport if args.module == "transport" else distribution)(args, rng)
+    train, val = {"transport": transport, "distribution": distribution, "transformation": transformation}[args.module](args, rng)
     rng.shuffle(train)
 
     folder = MODULES[args.module]["dataset"]

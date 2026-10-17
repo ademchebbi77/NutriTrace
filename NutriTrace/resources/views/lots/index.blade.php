@@ -33,6 +33,9 @@
                                 <th>{{ __('lots.fields.quantity') }}</th>
                                 <th>{{ __('lots.fields.production_date') }}</th>
                                 <th>{{ __('lots.fields.expiration_date') }}</th>
+                                @if (auth()->user()->isAdmin())
+                                    <th>{{ __('ai.expiry.column') }} <i class="fas fa-robot fa-xs text-gray-500" title="{{ __('ai.expiry.help') }}"></i></th>
+                                @endif
                                 <th>{{ __('lots.fields.holder') }}</th>
                                 <th>{{ __('lots.fields.status') }}</th>
                                 <th class="no-sort">{{ __('ui.actions') }}</th>
@@ -51,6 +54,19 @@
                                             <span class="badge badge-danger">{{ __('lots.expired') }}</span>
                                         @endif
                                     </td>
+                                    @if (auth()->user()->isAdmin())
+                                        @php($expiry = $expiryChecks[$lot->id] ?? null)
+                                        <td data-order="{{ $expiry ? ($expiry->isSuspicious() ? 0 : 1) : 2 }}">
+                                            @if ($expiry)
+                                                <span class="badge badge-{{ $expiry->color() }}" title="{{ implode(' ', $expiry->reasons) }}">{{ $expiry->labelText() }}</span>
+                                                @if ($expiry->isSuspicious() && $expiry->suggested_date)
+                                                    <br><span class="small text-gray-600">{{ __('ai.expiry.suggested', ['date' => $expiry->suggested_date->format('d/m/Y')]) }}</span>
+                                                @endif
+                                            @else
+                                                <span class="small text-gray-500">{{ __('ai.certification.not_analyzed') }}</span>
+                                            @endif
+                                        </td>
+                                    @endif
                                     <td>
                                         {{ $lot->currentHolder->organization?->name ?? $lot->currentHolder->name }}
                                         @if ($lot->isHeldBy(auth()->user()))

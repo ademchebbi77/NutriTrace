@@ -35,7 +35,12 @@ VERDICTS = {
     ("certificate", "moyen"): r"points? à vérifier|plausible|vérification",
     ("certificate", "eleve"): r"suspect|douteux",
 }
-SCORED_TASKS = {"chat", "stock", "reception", "certificate"}
+# Transformations: "normal" is stated as coherent, every anomaly as something to check.
+VERDICTS[("transformation", "normal")] = r"cohérente|plausibles|ne présente pas d'anomalie"
+for _label in ("yield_too_high", "sources_expired", "yield_too_low", "energy_too_low", "water_too_low",
+               "energy_too_high", "water_too_high", "resources_missing"):
+    VERDICTS[("transformation", _label)] = r"anormal|vérifiez|suspect|anomalie"
+SCORED_TASKS = {"chat", "stock", "reception", "certificate", "transformation"}
 
 
 def normalize(text: str) -> str:

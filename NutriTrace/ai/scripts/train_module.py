@@ -27,7 +27,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from nutritrace_ai import train_status  # noqa: E402
 from nutritrace_ai.config import MODELS_DIR, MODULES  # noqa: E402
 
-CLASSIFIERS = {"transport": "train_anomaly.py", "distribution": "train_distribution_models.py"}
+CLASSIFIERS = {"transport": "train_anomaly.py", "distribution": "train_distribution_models.py",
+               "transformation": "train_transformation_models.py"}
 
 
 def step(script: str, *arguments: str) -> None:

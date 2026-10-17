@@ -1,4 +1,5 @@
 import base64
+import math
 import random
 
 import pytest
@@ -9,6 +10,9 @@ from nutritrace_ai import certificates, reception, synth
 from nutritrace_ai import synth_distribution as dsynth
 from nutritrace_ai.anomaly import AnomalyDetector
 from nutritrace_ai.distribution_models import CertificateRiskModel, ReceptionModel
+from nutritrace_ai import shelf_life, transformations
+from nutritrace_ai import synth_transformation as tsynth
+from nutritrace_ai.transformation_models import ShelfLifeModel, TransformationModel, build_regressor
 from nutritrace_ai.features import LABELS, rule_label, vector
 from nutritrace_ai.tabular import build_model
 
@@ -52,12 +56,15 @@ def tiny(cls, samples, vector_fn, label_fn):
 @pytest.fixture(scope="module")
 def models():
     rng = random.Random(0)
+    lots = [tsynth.lot(rng) for _ in range(600)]
     normal = synth.normal_transports(rng, 200)
     transports = normal + [synth.inject(rng, rng.choice(normal), kind) for kind in LABELS[1:] for _ in range(40)]
     return {
         "anomaly": tiny(AnomalyDetector, transports, vector, rule_label),
         "cert": tiny(CertificateRiskModel, [dsynth.certificate(rng) for _ in range(800)], certificates.vector, certificates.rule_level),
         "reception": tiny(ReceptionModel, [dsynth.reception(rng) for _ in range(800)], reception.vector, reception.rule_decision),
+        "transformation": tiny(TransformationModel, [tsynth.transformation(rng) for _ in range(800)], transformations.vector, transformations.rule_label),
+        "shelf": ShelfLifeModel(build_regressor().fit([shelf_life.vector(l) for l in lots], [math.log(l["true_days"]) for l in lots])),
     }
 
 
@@ -160,5 +167,26 @@ def test_training_status_and_refusals(client, monkeypatch):
     assert client.post("/train", json={"module": "distribution", "resume": True}).status_code == 409
     assert client.post("/train/cancel").status_code == 409
     models = client.get("/models").json()
-    assert {a["module"] for a in models["adapters"]} == {"transport", "distribution"}
-    assert set(models["classifiers"]) == {"anomaly", "cert", "reception"}
+    assert set(models["classifiers"]) == {"anomaly", "cert", "reception", "transformation", "shelf"}
+    assert {a["module"] for a in models["adapters"]} == {"transport", "distribution", "transformation"}
+
+
+def test_transformation_check_for_the_transformer_and_the_admin(client):
+    payload = tsynth.transformation(random.Random(4), "yield_too_high")
+    body = client.post("/transformation/check", json={"transformation": payload, "explain": True, "audience": "transformer"}).json()
+    assert body["label"] == "yield_too_high" and body["is_anomaly"] and body["risk"] > 0.5
+    assert body["expected"]["output_max"] > 0 and body["explanation"] == "Réponse du modèle."
+    module, messages = client.llm.prompts[-1]
+    assert module == "transformation" and "le transformateur, avant enregistrement" in messages[1]["content"]
+
+    batch = client.post("/transformation/check/batch", json={"transformations": [payload]}).json()["results"]
+    assert batch[0]["label"] == "yield_too_high" and batch[0]["explanation"] is None
+    assert client.post("/transformation/check", json={"transformation": payload, "audience": "consumer"}).status_code == 422
+
+
+def test_lots_expiry_batch(client):
+    lots = [{"id": 1, "product": "Fromage Sicilien de Béja", "category": "Produits laitiers", "unit": "kg", "production_date": "2026-01-01", "expiration_date": "2028-01-01"},
+            {"id": 2, "product": "Miel de thym", "category": "Miels", "unit": "kg", "production_date": "2026-01-01", "expiration_date": None}]
+    results = client.post("/lots/expiry/batch", json={"lots": lots}).json()["results"]
+    assert [r["label"] for r in results] == ["too_long", "missing"]
+    assert results[1]["suggested_date"] > "2026-12-01"

@@ -18,7 +18,7 @@ use Illuminate\View\View;
  */
 class AiController extends Controller
 {
-    public const MODULES = ['transport', 'distribution'];
+    public const MODULES = ['transport', 'distribution', 'transformation'];
 
     public function __construct(private readonly AiClient $client) {}
 

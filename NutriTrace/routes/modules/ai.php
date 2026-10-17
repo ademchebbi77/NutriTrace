@@ -2,7 +2,8 @@
 
 /*
 |--------------------------------------------------------------------------
-| Local AI of the modules Transport - Traçabilité and Distribution - Certification
+| Local AI of the modules Transport - Traçabilité, Distribution - Certification
+| and Transformation - Lots
 |--------------------------------------------------------------------------
 | Loaded inside the back office group of routes/web.php. The public route of
 | the lot assistant is in web.php, next to the traceability page. Generation
@@ -14,6 +15,7 @@ use App\Http\Controllers\Admin\AiController;
 use App\Http\Controllers\Admin\CertificationAiController;
 use App\Http\Controllers\DistributionAiController;
 use App\Http\Controllers\Distributor\AssistantController;
+use App\Http\Controllers\TransformationAiController;
 use App\Http\Controllers\TransportAiController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,10 +36,18 @@ Route::prefix('distributeur')->name('distributeur.')->middleware('role:DISTRIBUT
     });
 });
 
+// Transformation - Lots
+Route::prefix('transformateur')->name('transformateur.')->middleware(['role:TRANSFORMATEUR', 'throttle:10,1'])->group(function () {
+    Route::post('transformations/verifier', [TransformationAiController::class, 'check'])->name('transformations.check');
+});
+
 Route::prefix('admin')->name('admin.')->middleware('role:ADMIN')->group(function () {
     Route::post('certifications/{certification}/expliquer', [CertificationAiController::class, 'explain'])
         ->middleware('throttle:10,1')
         ->name('certifications.explain');
+    Route::post('transformations/{transformation}/expliquer', [TransformationAiController::class, 'explain'])
+        ->middleware('throttle:10,1')
+        ->name('transformations.explain');
 
     // Training and monitoring of the local models.
     Route::get('ia', [AiController::class, 'index'])->name('ai.index');

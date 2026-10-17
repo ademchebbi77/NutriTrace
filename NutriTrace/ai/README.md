@@ -9,8 +9,11 @@ IA de NutriTrace pour les modules **Transport - Traçabilité** et **Distributio
 | Distribution - Certification | **Certificats suspects** : organisme non reconnu ou imité, numéro mal formé ou déjà utilisé, dates, **contenu du PDF comparé au formulaire**, bio sur production conventionnelle | Forêt aléatoire (faible / moyen / élevé) + explication du LLM | Admin : badge et tri dans « Certifications à vérifier », rapport détaillé ; producteur : avertissement après l'envoi |
 | Distribution - Certification | **Contrôle avant réception** : date limite, certificats, alertes, journal, transport | Forêt aléatoire (accepter / réserves / refuser) + modèle d'anomalies + LLM | Bouton « Vérifier avec l'IA » des réceptions, carte sur la page de la distribution |
 | Distribution - Certification | **Assistant du distributeur** : stock, dates limites, ventes du mois, lots qui se vendent mal, réceptions en attente | Qwen2.5-1.5B + **adaptateur LoRA « distribution »** | Menu « Assistant IA » du distributeur |
+| Transformation - Lots | **Contrôle d'une transformation** avant l'enregistrement : quantité produite plausible pour les lots utilisés (rendements de référence par type de transformation), énergie et eau réalistes, lots sources périmés | Forêt aléatoire + explication du LLM (**adaptateur « transformation »**) | Bouton « Vérifier avec l'IA » du formulaire ; confirmation demandée si une anomalie est détectée |
+| Transformation - Lots | **Revue des transformations** par l'administrateur | Même modèle, score de risque + explication | Colonne « Contrôle IA » de la liste, carte sur chaque transformation |
+| Transformation - Lots | **Dates limites des lots** : durée de conservation attendue pour le produit, date suggérée | Régression (gradient boosting) | Colonne « Date limite (IA) » de la liste des lots (administrateur) |
 
-Le modèle de base n'est chargé **qu'une fois** sur la carte graphique ; chaque module a son propre adaptateur LoRA (quelques dizaines de Mo), choisi à chaque question. Les deux tiennent ainsi dans 6 Go.
+Le modèle de base n'est chargé **qu'une fois** sur la carte graphique ; chaque module a son propre adaptateur LoRA (quelques dizaines de Mo), choisi à chaque question. Les trois tiennent ainsi dans 6 Go.
 
 Le LLM ne répond jamais « de mémoire » : chaque question lui est envoyée **avec les données réelles** (le lot, ou le stock et les ventes du distributeur), totaux et classements déjà calculés. Il a été entraîné à répondre uniquement à partir de ces données et à le dire quand l'information n'y figure pas.
 
@@ -80,6 +83,7 @@ python scripts/train_module.py --module distribution       # tout le module, com
 # ou étape par étape :
 python scripts/generate_dataset.py --module distribution   # (transport par défaut)
 python scripts/train_distribution_models.py                # risque des certificats + contrôle de réception
+python scripts/train_transformation_models.py              # contrôle des transformations + durée de conservation
 python scripts/train_anomaly.py                            # anomalies de transport
 python scripts/train_llm.py --module distribution          # adaptateur LoRA (--resume pour reprendre)
 python scripts/evaluate_llm.py --module distribution       # --base pour comparer avec le modèle non affiné
@@ -104,6 +108,8 @@ Chaque modèle est une forêt aléatoire entraînée sur des exemples étiqueté
 - **Anomalies de transport** (`features.py`, 18 variables) : route plus longue que ×2,5 la ligne droite ou plus courte qu'elle, vitesse au-delà du maximum du mode, avion sous 150 km, dates incohérentes, distance manquante.
 - **Risque d'un certificat** (`certificates.py`, 27 variables) : registre des organismes reconnus par type de label (avec détection des noms imités par similarité), format du numéro propre à l'organisme, numéro déjà utilisé sur NutriTrace, durée de validité, justificatif absent ou illisible, numéro / organisme / titulaire / label / date absents du PDF, label bio sur une production conventionnelle.
 - **Contrôle de réception** (`reception.py`, 18 variables) : jours restants et part de la durée de conservation, certificats valides / en attente / refusés, alertes NutriTrace, journal intègre, signalement en cours, transparence, verdict du modèle d'anomalies sur le transport.
+- **Contrôle des transformations** (`transformations.py`, 18 variables) : rendement (masse produite / masse utilisée) comparé au profil de référence du type de transformation (huile d'olive 14-23 %, fromage 9-15 %, semoule 65-78 %, concentré de tomates 13-21 %…, calibrés sur les données de démonstration), énergie et eau par kg comparées au profil, âge et péremption des lots sources. Les profils inconnus n'appliquent que des limites physiques larges.
+- **Durée de conservation** (`shelf_life.py`, régression par gradient boosting sur le logarithme des jours) : catégorie, mots-clés du produit (fromage, huile, miel, dattes…), unité, produit transformé ou non. La date saisie est jugée trop lointaine au-delà de 2,5 fois la durée attendue, trop proche en dessous de 0,35 fois.
 
 Les scripts d'entraînement affichent précision, rappel et matrice de confusion sur un jeu de test jamais vu, et la justesse sur les cas réels de NutriTrace ; la page « IA locale » les reprend.
 
@@ -111,7 +117,7 @@ Les scripts d'entraînement affichent précision, rappel et matrice de confusion
 
 ```bash
 python -m pytest tests                          # Python : règles, jeux de données, API (faux LLM)
-php artisan test --filter="TransportAi|DistributionAi"   # Laravel : assistants, contrôles, cache, page d'administration
+php artisan test --filter="TransportAi|DistributionAi|TransformationAi"   # Laravel : assistants, contrôles, cache, page d'administration
 ```
 
 ## Fichiers

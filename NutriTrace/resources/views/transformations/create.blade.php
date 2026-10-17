@@ -176,6 +176,8 @@
                     </div>
                 </div>
 
+                @include('ai.partials.transformation-form-check')
+
                 <div class="alert alert-warning" role="note">
                     <i class="fas fa-exclamation-triangle mr-1"></i> {{ __('transformations.final_notice') }}
                 </div>

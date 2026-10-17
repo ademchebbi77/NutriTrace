@@ -34,22 +34,27 @@ from typing import Any
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from nutritrace_ai import certificates, reception, train_status
+from nutritrace_ai import certificates, reception, train_status, transformations
 from nutritrace_ai.anomaly import AnomalyDetector
 from nutritrace_ai.config import (ANOMALY_MODEL_PATH, CERT_RISK_MODEL_PATH, MODELS_DIR, MODULES, NO_LLM, RECEPTION_MODEL_PATH, ROOT,
-                                  SERVICE_TOKEN, TRAIN_LOG_PATH)
+                                  SERVICE_TOKEN, SHELF_LIFE_MODEL_PATH, TRAIN_LOG_PATH, TRANSFORMATION_MODEL_PATH)
 from nutritrace_ai.distribution_models import CertificateRiskModel, ReceptionModel
 from nutritrace_ai.explain import explain
 from nutritrace_ai.features import report
 from nutritrace_ai.pdf_text import extract
-from nutritrace_ai.prompts import certificate_messages, chat_messages, explain_messages, reception_messages, stock_messages
+from nutritrace_ai.prompts import (certificate_messages, chat_messages, explain_messages, reception_messages, stock_messages,
+                                   transformation_messages)
+from nutritrace_ai.transformation_models import ShelfLifeModel, TransformationModel
 
 log = logging.getLogger("nutritrace_ai")
-state: dict[str, Any] = {"llm": None, "anomaly": None, "cert": None, "reception": None, "errors": [], "process": None}
+state: dict[str, Any] = {"llm": None, "anomaly": None, "cert": None, "reception": None, "transformation": None, "shelf": None,
+                         "errors": [], "process": None}
 CLASSIFIERS = {
     "anomaly": (AnomalyDetector, ANOMALY_MODEL_PATH),
     "cert": (CertificateRiskModel, CERT_RISK_MODEL_PATH),
     "reception": (ReceptionModel, RECEPTION_MODEL_PATH),
+    "transformation": (TransformationModel, TRANSFORMATION_MODEL_PATH),
+    "shelf": (ShelfLifeModel, SHELF_LIFE_MODEL_PATH),
 }
 
 
@@ -130,6 +135,8 @@ async def health() -> dict[str, Any]:
         "anomaly": state["anomaly"] is not None,
         "certification": state["cert"] is not None,
         "reception": state["reception"] is not None,
+        "transformation": state["transformation"] is not None,
+        "shelf_life": state["shelf"] is not None,
         "adapters": llm.adapters if llm else [],
         "model": llm.name if llm else None,
         "fine_tuned": bool(llm and llm.fine_tuned),
@@ -255,6 +262,59 @@ def certificate_risk(request: CertificateRequest) -> dict[str, Any]:
 @app.post("/certification/risk/batch", dependencies=[Depends(check_token)])
 def certificate_risk_batch(request: CertificateBatchRequest) -> dict[str, Any]:
     return {"results": [risk_of(certificate, False) for certificate in request.certificates]}
+
+
+# --- transformation - lots ------------------------------------------------------------------
+
+class TransformationRequest(BaseModel):
+    transformation: dict[str, Any]
+    explain: bool = False
+    audience: str = Field(default="transformer", pattern="^(transformer|admin)$")
+
+
+class TransformationBatchRequest(BaseModel):
+    transformations: list[dict[str, Any]] = Field(max_length=300)
+
+
+class LotsRequest(BaseModel):
+    lots: list[dict[str, Any]] = Field(max_length=1000)
+
+
+def check_transformation(payload: dict[str, Any], with_explanation: bool, audience: str) -> dict[str, Any]:
+    model, llm = need("transformation"), state["llm"]
+    try:
+        result = model.predict(payload)
+    except (KeyError, TypeError, ValueError, ZeroDivisionError) as error:
+        raise HTTPException(status_code=422, detail=f"Invalid transformation: {error}") from error
+    result["id"] = payload.get("id")
+    result["explanation"] = None
+    if with_explanation:
+        if llm is not None:
+            text = transformations.report(payload, result["label"], result["confidence"], audience)
+            result["explanation"] = llm.generate(transformation_messages(text, audience), module="transformation")
+        else:
+            result["explanation"] = transformations.explain(payload, result["label"], audience)
+    result["model"] = "random-forest" + (f" + {llm.model_name('transformation')}" if with_explanation and llm else "")
+    return result
+
+
+@app.post("/transformation/check", dependencies=[Depends(check_token)])
+def transformation_check(request: TransformationRequest) -> dict[str, Any]:
+    return check_transformation(request.transformation, request.explain, request.audience)
+
+
+@app.post("/transformation/check/batch", dependencies=[Depends(check_token)])
+def transformation_check_batch(request: TransformationBatchRequest) -> dict[str, Any]:
+    return {"results": [check_transformation(payload, False, "admin") for payload in request.transformations]}
+
+
+@app.post("/lots/expiry/batch", dependencies=[Depends(check_token)])
+def lots_expiry(request: LotsRequest) -> dict[str, Any]:
+    model = need("shelf")
+    try:
+        return {"results": [model.predict(lot) for lot in request.lots], "model": "gradient-boosting"}
+    except (KeyError, TypeError, ValueError) as error:
+        raise HTTPException(status_code=422, detail=f"Invalid lot: {error}") from error
 
 
 # --- training -------------------------------------------------------------------------------

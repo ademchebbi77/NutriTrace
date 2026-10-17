@@ -13,6 +13,8 @@ MODELS_DIR = ROOT / "models"
 ANOMALY_MODEL_PATH = MODELS_DIR / "anomaly.joblib"
 CERT_RISK_MODEL_PATH = MODELS_DIR / "cert-risk.joblib"
 RECEPTION_MODEL_PATH = MODELS_DIR / "reception.joblib"
+TRANSFORMATION_MODEL_PATH = MODELS_DIR / "transformation.joblib"
+SHELF_LIFE_MODEL_PATH = MODELS_DIR / "shelf-life.joblib"
 
 # Live state of a training run, written by scripts/train_module.py and read by the service.
 TRAIN_STATUS_PATH = MODELS_DIR / "train-status.json"
@@ -29,6 +31,11 @@ MODULES = {
         "label": "Distribution - Certification",
         "dataset": DATA_DIR / "dataset-distribution",
         "adapter": MODELS_DIR / "adapters" / "distribution",
+    },
+    "transformation": {
+        "label": "Transformation - Lots",
+        "dataset": DATA_DIR / "dataset-transformation",
+        "adapter": MODELS_DIR / "adapters" / "transformation",
     },
 }
 

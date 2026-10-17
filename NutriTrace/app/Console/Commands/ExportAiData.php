@@ -6,10 +6,12 @@ use App\Enums\UserRole;
 use App\Models\Certification;
 use App\Models\Distribution;
 use App\Models\Lot;
+use App\Models\Transformation;
 use App\Models\Transport;
 use App\Models\User;
 use App\Services\Ai\AiContext;
 use App\Services\Ai\DistributionAiContext;
+use App\Services\Ai\TransformationAiContext;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -19,7 +21,7 @@ use Illuminate\Support\Facades\File;
 #[Description('Export the data of NutriTrace in the format of the local AI service, to generate its training data')]
 class ExportAiData extends Command
 {
-    public function handle(AiContext $context, DistributionAiContext $distribution): int
+    public function handle(AiContext $context, DistributionAiContext $distribution, TransformationAiContext $transformation): int
     {
         $folder = $this->option('output') ?: config('ai.export_path');
         File::ensureDirectoryExists($folder);
@@ -41,6 +43,11 @@ class ExportAiData extends Command
                 ->map(fn (Distribution $handover) => $distribution->forReception($handover)),
             'certifications.json' => Certification::with(['owner.organization', 'certifiable'])->orderBy('id')->get()
                 ->map(fn (Certification $certification) => $distribution->forCertification($certification)),
+            // Transformation - Lots
+            'transformations.json' => Transformation::orderBy('id')->get()
+                ->map(fn (Transformation $item) => $transformation->fromTransformation($item)),
+            'lots_expiry.json' => Lot::with('product.category')->orderBy('id')->get()
+                ->map(fn (Lot $lot) => $transformation->forLotExpiry($lot)),
         ];
 
         $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;

@@ -88,6 +88,8 @@
                         <i class="fas fa-boxes fa-sm mr-1"></i> {{ __('ui.view') }}</a>
                 </div>
             </div>
+
+            @include('ai.partials.transformation-check')
         </div>
 
     </div>

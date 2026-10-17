@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\LotUpdateRequest;
 use App\Models\Lot;
+use App\Services\Ai\LotExpiryAdvisor;
 use App\Services\Scoring\GreenwashingWarnings;
 use App\Services\Scoring\TrustScoreCalculator;
 use App\Services\Traceability\ChainVerifier;
@@ -18,15 +19,19 @@ use Illuminate\View\View;
  */
 class LotController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, LotExpiryAdvisor $expiry): View
     {
         Gate::authorize('viewAny', Lot::class);
 
+        $lots = Lot::visibleTo($request->user())
+            ->with(['product.category', 'currentHolder.organization', 'environmentalImpact'])
+            ->latest()
+            ->get();
+
         return view('lots.index', [
-            'lots' => Lot::visibleTo($request->user())
-                ->with(['product', 'currentHolder.organization', 'environmentalImpact'])
-                ->latest()
-                ->get(),
+            'lots' => $lots,
+            // The admin sees whether each date limit is plausible for its product.
+            'expiryChecks' => $request->user()->isAdmin() ? $expiry->forList($lots) : collect(),
         ]);
     }
 

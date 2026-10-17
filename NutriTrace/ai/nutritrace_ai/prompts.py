@@ -37,6 +37,27 @@ SYSTEM_CERTIFICATE = (
 )
 
 
+SYSTEM_TRANSFORMATION = {
+    "transformer": (
+        "Tu es le conseiller des transformateurs NutriTrace. À partir du RAPPORT DE CONTRÔLE d'une transformation pas encore "
+        "enregistrée, explique au transformateur, en français et en deux à quatre phrases, si ses quantités et ressources sont "
+        "plausibles et ce qu'il doit vérifier avant d'enregistrer. Cite les chiffres du rapport, n'en invente aucun."
+    ),
+    "admin": (
+        "Tu es l'assistant de contrôle des transformations de NutriTrace. À partir du RAPPORT DE CONTRÔLE fourni, explique à "
+        "l'administrateur, en français et en deux à quatre phrases, si la transformation paraît fiable ou suspecte et ce qu'il "
+        "devrait vérifier. Cite les chiffres du rapport, n'en invente aucun."
+    ),
+}
+
+
+def transformation_messages(report: str, audience: str) -> list[dict[str, str]]:
+    return [
+        {"role": "system", "content": SYSTEM_TRANSFORMATION[audience]},
+        {"role": "user", "content": f"RAPPORT DE CONTRÔLE :\n{report}"},
+    ]
+
+
 def chat_messages(ctx: dict[str, Any], question: str) -> list[dict[str, str]]:
     return [
         {"role": "system", "content": SYSTEM_CHAT},
