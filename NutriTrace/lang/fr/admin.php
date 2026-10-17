@@ -73,6 +73,8 @@ return [
             'lot_received' => 'Lot reçu',
             'lot_refused' => 'Lot refusé',
             'lot_withdrawn' => 'Envoi annulé',
+            'ai_training_started' => 'Entraînement IA lancé',
+            'ai_training_cancelled' => 'Entraînement IA annulé',
             'certification_approved' => 'Certification validée',
             'certification_rejected' => 'Certification refusée',
             'report_under_review' => 'Signalement en cours d\'examen',

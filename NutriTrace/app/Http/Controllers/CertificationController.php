@@ -8,6 +8,7 @@ use App\Models\Certification;
 use App\Models\Lot;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Ai\CertificationRiskAnalyzer;
 use App\Services\CertificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CertificationController extends Controller
 {
-    public function __construct(private readonly CertificationService $certifications) {}
+    public function __construct(
+        private readonly CertificationService $certifications,
+        private readonly CertificationRiskAnalyzer $risk,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -46,14 +50,18 @@ class CertificationController extends Controller
             $request->file('document'),
         );
 
-        return redirect(area_route('certifications.show', $certification))->with('success', __('certifications.submitted'));
+        return $this->afterSubmission($certification, __('certifications.submitted'));
     }
 
     public function show(Certification $certification): View
     {
         Gate::authorize('view', $certification);
 
-        return view('certifications.show', ['certification' => $certification->load(['certifiable', 'reviewer', 'owner.organization'])]);
+        return view('certifications.show', [
+            'certification' => $certification->load(['certifiable', 'reviewer', 'owner.organization']),
+            'analysis' => $this->risk->current($certification),
+            'canExplain' => false,
+        ]);
     }
 
     public function edit(Request $request, Certification $certification): View
@@ -67,7 +75,7 @@ class CertificationController extends Controller
     {
         $this->certifications->resubmit($certification, $request->safe()->except(['target', 'document']), $request->file('document'));
 
-        return redirect(area_route('certifications.show', $certification))->with('success', __('certifications.resubmitted'));
+        return $this->afterSubmission($certification, __('certifications.resubmitted'));
     }
 
     public function destroy(Certification $certification): RedirectResponse
@@ -77,6 +85,18 @@ class CertificationController extends Controller
         $this->certifications->delete($certification);
 
         return redirect(area_route('certifications.index'))->with('success', __('certifications.deleted'));
+    }
+
+    /**
+     * The local AI checks the certificate at once, so the owner can fix the problems it
+     * finds before the admin reviews it. Never blocks the submission.
+     */
+    private function afterSubmission(Certification $certification, string $message): RedirectResponse
+    {
+        $analysis = $this->risk->isAvailable() ? $this->risk->analyze($certification) : null;
+        $redirect = redirect(area_route('certifications.show', $certification))->with('success', $message);
+
+        return $analysis?->isSuspicious() ? $redirect->with('warning', __('ai.certification.producer_warning')) : $redirect;
     }
 
     /**

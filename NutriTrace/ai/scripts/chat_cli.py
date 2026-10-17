@@ -30,12 +30,12 @@ def main() -> None:
     if ctx is None:
         sys.exit(f"Lot {args.lot} not found in {EXPORT_DIR / 'lots.json'}")
 
-    llm = LocalLLM(adapter_dir=None if args.base else ADAPTER_DIR)
-    print(f"{llm.name} — lot {ctx['lot']['number']} ({ctx['product']['name']}). Empty line to quit.")
+    llm = LocalLLM(adapters={} if args.base else {"transport": ADAPTER_DIR})
+    print(f"{llm.model_name('transport')} — lot {ctx['lot']['number']} ({ctx['product']['name']}). Empty line to quit.")
     if args.show_context:
         print(render(ctx))
     while question := input("\nVous : ").strip():
-        print(f"Assistant : {llm.generate(chat_messages(ctx, question))}")
+        print(f"Assistant : {llm.generate(chat_messages(ctx, question), module='transport')}")
 
 
 if __name__ == "__main__":

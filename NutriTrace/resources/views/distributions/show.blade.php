@@ -84,6 +84,8 @@
         </div>
 
         <div class="col-lg-5">
+            @include('ai.partials.reception-check')
+
             @if ($distribution->isAccepted())
                 <div class="card border-left-success shadow mb-4">
                     <div class="card-body">

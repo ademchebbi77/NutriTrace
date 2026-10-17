@@ -1,20 +1,26 @@
-# IA de NutriTrace — module Transport - Traçabilité
+# IA locale de NutriTrace
 
-IA locale de NutriTrace, écrite en Python et exécutée sur la même machine que l'application Laravel. **Aucune API externe n'est appelée**, ni pour l'entraînement ni pour les réponses. Internet ne sert qu'une fois : pour télécharger le modèle de base depuis Hugging Face.
+IA de NutriTrace pour les modules **Transport - Traçabilité** et **Distribution - Certification**, écrite en Python et exécutée sur la même machine que l'application Laravel. **Aucune API externe n'est appelée**, ni pour l'entraînement ni pour les réponses. Internet ne sert qu'une fois : pour télécharger le modèle de base depuis Hugging Face.
 
-| Fonction | Modèle | Où dans l'application |
-|---|---|---|
-| **Questions sur un lot** (« Quelle distance ? », « Est-il local ? », « La traçabilité est-elle fiable ? ») | **Qwen2.5-1.5B-Instruct affiné par LoRA** sur les données NutriTrace (0.5B si la carte graphique est trop petite) | Page publique de traçabilité (QR code) et page d'un transport dans le back-office |
-| **Détection d'anomalies de transport** (distance, vitesse, mode, dates) | **Forêt aléatoire** (scikit-learn) qui détecte, puis **le même LLM** qui explique | Carte « Analyse IA du transport » de la page d'un transport |
+| Module | Fonction | Modèle | Où dans l'application |
+|---|---|---|---|
+| Transport - Traçabilité | **Questions sur un lot** (« Quelle distance ? », « Est-il local ? ») | Qwen2.5-1.5B + **adaptateur LoRA « transport »** | Page publique de traçabilité, page d'un transport |
+| Transport - Traçabilité | **Anomalies de transport** (distance, vitesse, mode, dates) | Forêt aléatoire + explication du LLM | Carte « Analyse IA du transport » |
+| Distribution - Certification | **Certificats suspects** : organisme non reconnu ou imité, numéro mal formé ou déjà utilisé, dates, **contenu du PDF comparé au formulaire**, bio sur production conventionnelle | Forêt aléatoire (faible / moyen / élevé) + explication du LLM | Admin : badge et tri dans « Certifications à vérifier », rapport détaillé ; producteur : avertissement après l'envoi |
+| Distribution - Certification | **Contrôle avant réception** : date limite, certificats, alertes, journal, transport | Forêt aléatoire (accepter / réserves / refuser) + modèle d'anomalies + LLM | Bouton « Vérifier avec l'IA » des réceptions, carte sur la page de la distribution |
+| Distribution - Certification | **Assistant du distributeur** : stock, dates limites, ventes du mois, lots qui se vendent mal, réceptions en attente | Qwen2.5-1.5B + **adaptateur LoRA « distribution »** | Menu « Assistant IA » du distributeur |
 
-Le modèle ne répond jamais « de mémoire » : chaque question lui est envoyée **avec les données réelles du lot** (parcours, transports, empreinte, certifications, scores). Il a été entraîné à répondre uniquement à partir de ces données et à le dire quand l'information n'y figure pas.
+Le modèle de base n'est chargé **qu'une fois** sur la carte graphique ; chaque module a son propre adaptateur LoRA (quelques dizaines de Mo), choisi à chaque question. Les deux tiennent ainsi dans 6 Go.
+
+Le LLM ne répond jamais « de mémoire » : chaque question lui est envoyée **avec les données réelles** (le lot, ou le stock et les ventes du distributeur), totaux et classements déjà calculés. Il a été entraîné à répondre uniquement à partir de ces données et à le dire quand l'information n'y figure pas.
 
 ```
-Laravel (PHP)                                      Python (ce dossier)
-─────────────                                      ───────────────────
-AiContext  ── données du lot / transport ──►  POST /chat               ──►  context.py → prompt → Qwen2.5 + LoRA
-AiClient   ◄── réponse, verdict ───────────   POST /transport/analyze  ──►  features.py → forêt aléatoire → explication du LLM
-LotAssistant, TransportAnalyzer : cache en base (ai_answers, transport_analyses)
+Laravel (PHP)                                         Python (ce dossier, FastAPI)
+─────────────                                         ────────────────────────────
+AiContext, DistributionAiContext ── données ──►  /chat, /transport/analyze            (adaptateur transport)
+AiClient ◄── réponses, scores ───────────────    /distribution/chat, /distribution/reception, /certification/risk
+                                                  /train, /train/status, /train/cancel, /models
+Résultats en cache dans la base : ai_answers, transport_analyses, distributor_ai_answers, reception_checks, certification_analyses
 ```
 
 ## 1. Installation (une fois)
@@ -29,59 +35,11 @@ pip install torch --index-url https://download.pytorch.org/whl/cu128
 pip install -r requirements.txt
 ```
 
-## 2. Entraînement
+Côté Laravel : `php artisan migrate`, puis une fois `php artisan ai:demo-certificates` pour donner à chaque certificat de démonstration son propre justificatif PDF (ceux des certificats refusés contiennent volontairement un autre numéro).
 
-```bash
-# 1. Exporter les lots et transports réels de NutriTrace (depuis le dossier NutriTrace)
-php artisan ai:export
+## 2. Lancer le service
 
-# 2. Générer les données d'entraînement (≈ 3 400 questions/réponses + explications)
-python scripts/generate_dataset.py
-
-# 3. Entraîner le modèle d'anomalies (quelques secondes) → models/anomaly.joblib + anomaly-metrics.json
-python scripts/train_anomaly.py
-
-# 4. Affiner le LLM par LoRA (≈ 30 à 60 min sur RTX 4050) → models/llm-adapter/
-python scripts/train_llm.py
-#    mémoire GPU insuffisante ? le script réessaie seul avec Qwen2.5-0.5B-Instruct, ou :
-python scripts/train_llm.py --base-model Qwen/Qwen2.5-0.5B-Instruct
-
-# 5. Mesurer le gain : modèle de base contre modèle affiné, sur des lots jamais vus à l'entraînement
-python scripts/evaluate_llm.py --base
-python scripts/evaluate_llm.py
-
-# Discuter avec le modèle dans le terminal
-python scripts/chat_cli.py LOT-2026-034
-```
-
-### Contenu des données d'entraînement
-
-- **Données réelles** : les 57 lots et 51 transports de la base de démonstration, exportés par `ai:export` (vue publique uniquement : ni e-mail, ni téléphone, ni adresse).
-- **Données synthétiques** (`nutritrace_ai/synth.py`) : des parcours générés au même format, avec des lieux, produits et acteurs tunisiens et les mêmes phrases d'événements que `lang/fr/events.php`. Elles apprennent au modèle à lire *n'importe quel* lot au lieu de retenir ceux de la démonstration.
-- **Questions-réponses** (`nutritrace_ai/qa.py`) : 24 types de questions (distance, modes de transport, origine, producteur, bio, dates, statut, local, CO₂, note, certifications, fiabilité, alertes, transformation, quantité, durée, signalements, résumé, questions sans réponse dans les données, coordonnées, hors sujet). Chacune existe en plusieurs formulations, avec du bruit (sans accents, sans majuscules). Les réponses sont **calculées à partir des données**.
-- **Explications** : des rapports d'anomalie et l'explication attendue, pour chaque type d'anomalie.
-- Les lots sont répartis entre entraînement et validation : le score de validation est donc mesuré sur des **lots que le modèle n'a jamais vus**.
-
-### Le modèle d'anomalies
-
-`features.py` calcule 18 variables par transport : le mode, la distance déclarée, la distance à vol d'oiseau (formule de Haversine, la même que `App\Services\GeoDistance`), le rapport entre les deux, la durée, la vitesse moyenne comparée au maximum du mode, les dates et la masse.
-
-Les étiquettes d'entraînement viennent de règles de référence :
-- route plus longue que ×2,5 la ligne droite, ou distance plus courte que la ligne droite ;
-- vitesse au-delà du maximum du mode (camion 90 km/h, train 160, bateau 45, avion 800) ;
-- avion sous 150 km, bateau sous 30 km ;
-- arrivée avant le départ, départ avant la production ;
-- distance manquante.
-
-La forêt aléatoire apprend ces étiquettes sur environ 9 600 exemples (réels, synthétiques, limites et avec anomalies injectées). `train_anomaly.py` affiche sa précision et son rappel sur un jeu de test jamais vu, ainsi que sa justesse sur les transports réels de NutriTrace.
-
-## 3. Lancer le service
-
-Le plus simple : **double-cliquer sur `ai/start.bat`** et laisser la fenêtre « NutriTrace AI (ne pas fermer) » ouverte pendant l'utilisation du site. Le modèle met environ 30 secondes à se charger ; l'assistant apparaît ensuite sur les pages de traçabilité (dans la minute).
-
-Pour une démonstration fluide, une fois le service lancé : `php artisan ai:warm` répond à l'avance aux questions suggérées de chaque lot (quelques secondes par lot). Un clic sur une suggestion est alors instantané ; seules les questions libres sont générées à la demande (1 à 20 s selon la charge de la carte graphique).
-
-Ou dans un terminal :
+**Double-cliquer sur `ai/start.bat`** et laisser la fenêtre « NutriTrace AI (ne pas fermer) » ouverte pendant l'utilisation du site (chargement : environ 30 secondes). Ou dans un terminal :
 
 ```bash
 cd NutriTrace/ai
@@ -98,34 +56,76 @@ AI_SERVICE_TOKEN=          # secret partagé, à définir aussi dans l'environne
 AI_TIMEOUT=90
 ```
 
-Puis lancer une fois `php artisan migrate` (tables `ai_answers` et `transport_analyses`).
+Pour une démonstration fluide : `php artisan ai:warm` répond à l'avance aux questions suggérées de chaque lot.
 
-**Quand le service est arrêté**, l'application continue de fonctionner. Les réponses déjà données sont servies depuis la base (la question apparaît sous « Déjà répondu ») et les blocs d'IA sont masqués s'il n'y a rien à montrer. Une réponse n'est réutilisée que tant que les données du lot n'ont pas changé (`data_version` = empreinte des données vues par le modèle).
+**Quand le service est arrêté**, l'application continue de fonctionner : les résultats déjà calculés sont servis depuis la base et un message invite à lancer `ai/start.bat`. Un résultat n'est réutilisé que tant que les données n'ont pas changé (`data_version` = empreinte des données vues par l'IA). Sans carte graphique, `set NUTRITRACE_NO_LLM=1` lance le service sans LLM : les scores fonctionnent, avec des explications modèles.
 
-Sans carte graphique, on peut lancer le service sans le LLM : la détection d'anomalies fonctionne, avec des explications modèles.
+## 3. Entraîner depuis l'application
+
+Menu **Administrateur → IA locale** : état du service, modèles chargés, scores de chaque modèle, et entraînement d'un module en un clic. L'application exporte ses données (`ai:export`), puis le service lance `scripts/train_module.py` dans un processus séparé :
+
+1. génération du jeu de données (données réelles + synthétiques) ;
+2. entraînement des modèles scikit-learn (quelques secondes) ;
+3. affinage de l'adaptateur LoRA du module sur la carte graphique (30 à 60 min) ;
+4. évaluation sur des données jamais vues.
+
+La page suit la progression en direct (étape, pas, perte, temps restant) et permet d'annuler. **Pendant l'entraînement, le LLM est déchargé** pour libérer la carte graphique : les réponses en cache restent disponibles, les scores scikit-learn continuent de fonctionner, et tous les modèles sont rechargés automatiquement à la fin.
+
+## 4. Entraîner en ligne de commande
 
 ```bash
-set NUTRITRACE_NO_LLM=1 && uvicorn server:app --port 8001
+php artisan ai:export                                     # depuis le dossier NutriTrace
+
+python scripts/train_module.py --module distribution       # tout le module, comme la page d'administration
+# ou étape par étape :
+python scripts/generate_dataset.py --module distribution   # (transport par défaut)
+python scripts/train_distribution_models.py                # risque des certificats + contrôle de réception
+python scripts/train_anomaly.py                            # anomalies de transport
+python scripts/train_llm.py --module distribution          # adaptateur LoRA (--resume pour reprendre)
+python scripts/evaluate_llm.py --module distribution       # --base pour comparer avec le modèle non affiné
+
+python scripts/chat_cli.py LOT-2026-034                    # discuter avec le modèle transport dans le terminal
 ```
 
-## 4. Tests
+Si la carte graphique manque de mémoire, `train_llm.py` réessaie seul avec Qwen2.5-0.5B ; tous les adaptateurs doivent alors être entraînés sur ce même modèle de base pour être servis ensemble.
+
+## 5. Les données d'entraînement
+
+- **Données réelles**, exportées par `ai:export` (vue publique uniquement pour les lots : ni e-mail, ni téléphone, ni adresse) : lots, transports, stocks et ventes des distributeurs, réceptions, certificats avec le texte de leur PDF.
+- **Données synthétiques** au même format, avec des lieux, produits et acteurs tunisiens : parcours de lots (`synth.py`), stocks de distributeurs avec leurs ventes, certificats authentiques ou défectueux (organisme imité, numéro copié, PDF qui ne correspond pas…) et réceptions (`synth_distribution.py`).
+- **Questions-réponses** calculées à partir des données : 24 types pour les lots (`qa.py`), 15 pour les distributeurs (`stock_qa.py`), en plusieurs formulations avec du bruit (sans accents, sans majuscules), y compris des questions sans réponse dans les données et hors sujet, auxquelles le modèle apprend à ne pas répondre.
+- **Explications** : des rapports (anomalie de transport, contrôle de réception, risque d'un certificat) et l'explication attendue.
+- Les contextes (lots, distributeurs) sont répartis entre entraînement et validation : le score est mesuré sur des **données jamais vues**.
+
+### Les modèles scikit-learn
+
+Chaque modèle est une forêt aléatoire entraînée sur des exemples étiquetés par des **règles de référence** explicites (lisibles dans le code), ce qui permet d'expliquer chaque verdict par des raisons en français :
+
+- **Anomalies de transport** (`features.py`, 18 variables) : route plus longue que ×2,5 la ligne droite ou plus courte qu'elle, vitesse au-delà du maximum du mode, avion sous 150 km, dates incohérentes, distance manquante.
+- **Risque d'un certificat** (`certificates.py`, 27 variables) : registre des organismes reconnus par type de label (avec détection des noms imités par similarité), format du numéro propre à l'organisme, numéro déjà utilisé sur NutriTrace, durée de validité, justificatif absent ou illisible, numéro / organisme / titulaire / label / date absents du PDF, label bio sur une production conventionnelle.
+- **Contrôle de réception** (`reception.py`, 18 variables) : jours restants et part de la durée de conservation, certificats valides / en attente / refusés, alertes NutriTrace, journal intègre, signalement en cours, transparence, verdict du modèle d'anomalies sur le transport.
+
+Les scripts d'entraînement affichent précision, rappel et matrice de confusion sur un jeu de test jamais vu, et la justesse sur les cas réels de NutriTrace ; la page « IA locale » les reprend.
+
+## 6. Tests
 
 ```bash
-python -m pytest tests                  # Python : règles, jeu de données, API (avec un faux LLM)
-php artisan test --filter=TransportAi   # Laravel : assistant, cache, analyse, export
+python -m pytest tests                          # Python : règles, jeux de données, API (faux LLM)
+php artisan test --filter="TransportAi|DistributionAi"   # Laravel : assistants, contrôles, cache, page d'administration
 ```
 
 ## Fichiers
 
 | Fichier | Rôle |
 |---|---|
-| `nutritrace_ai/context.py` | Données du lot → texte du prompt (avec les totaux déjà calculés) |
+| `nutritrace_ai/context.py`, `stock.py` | Données d'un lot / d'un distributeur → texte du prompt, totaux et classements calculés |
 | `nutritrace_ai/prompts.py` | Prompts système, communs à l'entraînement et aux réponses |
-| `nutritrace_ai/qa.py` | Questions/réponses calculées à partir d'un lot |
-| `nutritrace_ai/synth.py` | Lots et transports synthétiques, injection d'anomalies |
-| `nutritrace_ai/features.py` | Variables d'un transport, règles de référence, raisons en français |
-| `nutritrace_ai/anomaly.py` | Forêt aléatoire : entraînement, sauvegarde, prédiction |
-| `nutritrace_ai/explain.py` | Explications de référence (cibles d'entraînement et secours sans LLM) |
-| `nutritrace_ai/llm.py` | Chargement de Qwen2.5 + adaptateur LoRA, génération |
+| `nutritrace_ai/qa.py`, `stock_qa.py` | Questions/réponses calculées à partir des données |
+| `nutritrace_ai/synth.py`, `synth_distribution.py` | Données synthétiques, injection d'anomalies et de défauts |
+| `nutritrace_ai/features.py`, `certificates.py`, `reception.py` | Variables, règles de référence et raisons en français des trois modèles |
+| `nutritrace_ai/pdf_text.py` | Texte des justificatifs PDF (pypdf, sans OCR) |
+| `nutritrace_ai/tabular.py`, `anomaly.py`, `distribution_models.py` | Forêts aléatoires : sauvegarde, chargement, prédiction |
+| `nutritrace_ai/llm.py` | Modèle de base chargé une fois + un adaptateur LoRA par module |
+| `nutritrace_ai/train_status.py` | État en direct d'un entraînement (lu par la page d'administration) |
 | `server.py` | API FastAPI appelée par Laravel |
-| `scripts/` | Génération du jeu de données, entraînement, évaluation, chat en terminal |
+| `scripts/` | Jeux de données, entraînements, évaluation, chat en terminal |

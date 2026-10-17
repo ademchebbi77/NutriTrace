@@ -36,6 +36,7 @@ return [
         ['heading' => 'menu.headings.system', 'items' => [
             ['label' => 'menu.settings', 'icon' => 'fa-sliders-h', 'route' => 'admin.settings.edit'],
             ['label' => 'menu.audit_log', 'icon' => 'fa-clipboard-list', 'route' => 'admin.audit-logs.index'],
+            ['label' => 'menu.local_ai', 'icon' => 'fa-robot', 'route' => 'admin.ai.index'],
         ]],
     ],
 
@@ -87,6 +88,7 @@ return [
         ['heading' => 'menu.headings.sales', 'items' => [
             ['label' => 'menu.qr_labels', 'icon' => 'fa-qrcode', 'route' => 'distributeur.labels.index'],
             ['label' => 'menu.sales', 'icon' => 'fa-cash-register', 'route' => 'distributeur.sales.index'],
+            ['label' => 'menu.ai_assistant', 'icon' => 'fa-robot', 'route' => 'distributeur.assistant.show'],
         ]],
         ['heading' => 'menu.headings.account', 'items' => [
             ['label' => 'menu.organization', 'icon' => 'fa-building', 'route' => 'organization.edit'],

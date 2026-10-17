@@ -39,6 +39,10 @@
                         @endif
                     </div>
                     <div class="col-lg-5 text-lg-right mt-2 mt-lg-0">
+                        @if ($item['check_url'] ?? null)
+                            <a href="{{ $item['check_url'] }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-robot fa-sm"></i> {{ __('ai.reception.check') }}</a>
+                        @endif
                         <form method="POST" action="{{ $item['accept_url'] }}" class="d-inline">
                             @csrf
                             <button type="submit" class="btn btn-success btn-sm">

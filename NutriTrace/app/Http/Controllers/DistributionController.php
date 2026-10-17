@@ -6,6 +6,7 @@ use App\Enums\EventType;
 use App\Http\Requests\RejectHandoverRequest;
 use App\Models\Distribution;
 use App\Models\TraceabilityEvent;
+use App\Services\Ai\ReceptionAdvisor;
 use App\Services\LotReceptionService;
 use App\Services\SaleService;
 use Illuminate\Http\RedirectResponse;
@@ -30,13 +31,18 @@ class DistributionController extends Controller
         ]);
     }
 
-    public function show(Distribution $distribution): View
+    public function show(Request $request, Distribution $distribution, ReceptionAdvisor $advisor): View
     {
         Gate::authorize('view', $distribution);
+
+        // The AI check only matters while the distributor still has to accept or refuse the lot.
+        $deciding = $request->user()->can('respond', $distribution);
 
         return view('distributions.show', [
             'distribution' => $distribution->load(['lot.product', 'sender.organization', 'distributor.organization', 'transport']),
             'sales' => $this->salesOf($distribution),
+            'receptionCheck' => $deciding ? $advisor->current($distribution) : null,
+            'canCheck' => $deciding && $advisor->isAvailable(),
         ]);
     }
 

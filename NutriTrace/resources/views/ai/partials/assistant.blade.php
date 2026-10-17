@@ -5,6 +5,8 @@
 
     @param string $url  POST endpoint returning {answer} or {message}
     @param bool $available
+    @param ?string $texts  Translation group of the examples, placeholder and disclaimer (default ai.assistant)
+    @param ?string $offline  Message shown when the service is off
 --}}
 <div class="js-ai-assistant" data-url="{{ $url }}" data-thinking="{{ __('ai.assistant.thinking') }}"
     data-error="{{ __('ai.assistant.error') }}" data-you="{{ __('ai.assistant.you') }}" data-bot="{{ __('ai.assistant.bot') }}">
@@ -12,12 +14,12 @@
     <div class="js-ai-log mb-3" aria-live="polite"></div>
 
     @unless ($available)
-        <p class="small text-muted"><i class="fas fa-plug bi-plug" aria-hidden="true"></i> {{ __('ai.assistant.offline') }}</p>
+        <p class="small text-muted"><i class="fas fa-plug bi-plug" aria-hidden="true"></i> {{ $offline ?? __('ai.assistant.offline') }}</p>
     @endunless
 
     <div class="mb-3">
         <div class="small text-muted mb-1">{{ __('ai.assistant.suggestions') }}</div>
-        @foreach (__('ai.assistant.examples') as $question)
+        @foreach (__(($texts ?? 'ai.assistant').'.examples') as $question)
             <button type="button" class="btn btn-sm btn-outline-secondary mb-1 js-ai-suggestion" data-question="{{ $question }}">{{ $question }}</button>
         @endforeach
     </div>
@@ -26,14 +28,14 @@
         <label for="ai-question-{{ md5($url) }}" class="sr-only visually-hidden">{{ __('ai.assistant.question') }}</label>
         <div class="input-group">
             <input type="text" id="ai-question-{{ md5($url) }}" name="question" class="form-control" minlength="3"
-                maxlength="{{ config('ai.question_max_length') }}" placeholder="{{ __('ai.assistant.placeholder') }}" autocomplete="off" required>
+                maxlength="{{ config('ai.question_max_length') }}" placeholder="{{ __(($texts ?? 'ai.assistant').'.placeholder') }}" autocomplete="off" required>
             <div class="input-group-append">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane bi-send" aria-hidden="true"></i> {{ __('ai.assistant.ask') }}</button>
             </div>
         </div>
     </form>
 
-    <p class="small text-muted mt-2 mb-0">{{ __('ai.assistant.disclaimer') }}</p>
+    <p class="small text-muted mt-2 mb-0">{{ __(($texts ?? 'ai.assistant').'.disclaimer') }}</p>
 </div>
 
 @once

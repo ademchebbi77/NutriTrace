@@ -26,6 +26,7 @@
                                 <th>{{ __('certifications.fields.issuing_organization') }}</th>
                                 <th>{{ __('certifications.fields.expiration_date') }}</th>
                                 <th>{{ __('certifications.fields.status') }}</th>
+                                <th>{{ __('ai.certification.risk') }} <i class="fas fa-robot fa-xs text-gray-500" title="{{ __('ai.certification.admin_help') }}"></i></th>
                                 <th class="no-sort">{{ __('ui.actions') }}</th>
                             </tr>
                         </thead>
@@ -47,6 +48,15 @@
                                         {{ $certification->expiration_date?->format('d/m/Y') ?? __('certifications.fields.no_expiration') }}
                                     </td>
                                     <td><span class="badge badge-{{ $certification->status->color() }}">{{ $certification->status->label() }}</span></td>
+                                    @php($analysis = $analyses[$certification->id] ?? null)
+                                    <td data-order="{{ $analysis?->risk ?? -1 }}">
+                                        @if ($analysis)
+                                            <span class="badge badge-{{ $analysis->color() }}" title="{{ implode(' ', array_slice($analysis->reasons, 0, 3)) }}">{{ $analysis->levelText() }}</span>
+                                            <br><span class="small text-gray-600">{{ number_format($analysis->risk * 100, 0) }} %</span>
+                                        @else
+                                            <span class="small text-gray-500">{{ __('ai.certification.not_analyzed') }}</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         <a href="{{ route('admin.certifications.show', $certification) }}" class="btn btn-info btn-circle btn-sm"
                                             title="{{ __('ui.view') }}" aria-label="{{ __('ui.view') }} {{ $certification->name }}">

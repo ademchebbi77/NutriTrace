@@ -31,4 +31,7 @@ return [
 
     'question_max_length' => 300,
 
+    // Where `php artisan ai:export` writes the data the Python scripts train on.
+    'export_path' => base_path('ai/data/export'),
+
 ];

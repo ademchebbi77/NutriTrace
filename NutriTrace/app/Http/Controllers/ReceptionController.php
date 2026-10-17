@@ -44,6 +44,8 @@ class ReceptionController extends Controller
                     'status_color' => $distribution->status->color(),
                     'accept_url' => route('distributeur.distributions.receive', $distribution),
                     'reject_url' => route('distributeur.distributions.reject', $distribution),
+                    // The local AI check is shown on the distribution page.
+                    'check_url' => route('distributeur.distributions.show', $distribution),
                 ]);
         } else {
             $incoming = LotTransfer::where('to_user_id', $user->id)

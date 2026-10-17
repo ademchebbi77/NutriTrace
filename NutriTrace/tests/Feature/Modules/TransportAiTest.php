@@ -25,6 +25,7 @@ class TransportAiTest extends TestCase
     {
         parent::setUp();
 
+        config(['ai.enabled' => true]);
         $this->buildOliveOilJourney();
     }
 

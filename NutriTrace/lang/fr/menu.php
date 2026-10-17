@@ -30,6 +30,8 @@ return [
     'lots' => 'Lots',
     'settings' => 'Paramètres de calcul',
     'audit_log' => 'Journal d\'audit',
+    'local_ai' => 'IA locale',
+    'ai_assistant' => 'Assistant IA',
     'certifications' => 'Certifications',
     'environmental_data' => 'Données environnementales',
     'transfers' => 'Transferts',
