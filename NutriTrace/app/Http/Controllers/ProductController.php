@@ -6,6 +6,7 @@ use App\Enums\ProductStatus;
 use App\Http\Requests\ProductRequest;
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\Ai\ProductRiskAnalyzer;
 use App\Services\ProductService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,6 +79,18 @@ class ProductController extends Controller
         $this->products->delete($product);
 
         return redirect(area_route('products.index'))->with('success', __('products.deleted'));
+    }
+
+    public function analyzeRisk(Product $product, ProductRiskAnalyzer $analyzer): View
+    {
+        Gate::authorize('view', $product);
+
+        $analysis = $analyzer->analyze($product);
+
+        return view('products.risk-analysis', [
+            'product' => $product,
+            'analysis' => $analysis,
+        ]);
     }
 
     /**

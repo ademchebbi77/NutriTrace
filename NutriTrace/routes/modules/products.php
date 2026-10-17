@@ -18,6 +18,10 @@ foreach ([UserRole::PRODUCTEUR, UserRole::TRANSFORMATEUR] as $role) {
         Route::resource('produits', ProductController::class)
             ->names('products')
             ->parameters(['produits' => 'product']);
+
+        // AI Product Risk Analysis
+        Route::get('produits/{product}/analyse-risques', [ProductController::class, 'analyzeRisk'])
+            ->name('products.risk-analysis');
     });
 }
 
@@ -27,6 +31,10 @@ Route::prefix('admin')->name('admin.')->middleware('role:ADMIN')->group(function
         ->only(['index', 'show'])
         ->names('products')
         ->parameters(['produits' => 'product']);
+
+    // AI Product Risk Analysis for admin
+    Route::get('produits/{product}/analyse-risques', [ProductController::class, 'analyzeRisk'])
+        ->name('products.risk-analysis');
 
     Route::resource('categories', CategoryController::class)->except(['create', 'show']);
 });

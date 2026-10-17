@@ -13,6 +13,8 @@
         <div>
             <a href="{{ area_route('products.index') }}" class="btn btn-sm btn-light shadow-sm">
                 <i class="fas fa-arrow-left fa-sm"></i> {{ __('ui.back') }}</a>
+            <a href="{{ area_route('products.risk-analysis', $product) }}" class="btn btn-sm btn-info shadow-sm">
+                <i class="fas fa-brain fa-sm text-white-50"></i> Analyser les risques</a>
             @can('update', $product)
                 <a href="{{ area_route('products.edit', $product) }}" class="btn btn-sm btn-primary shadow-sm">
                     <i class="fas fa-pen fa-sm text-white-50"></i> {{ __('ui.edit') }}</a>

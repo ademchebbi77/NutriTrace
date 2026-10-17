@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'cohere' => [
+        'api_key' => env('COHERE_API_KEY'),
+        'model' => env('COHERE_MODEL', 'command-r-08-2024'),
+        'base_url' => env('COHERE_BASE_URL', 'https://api.cohere.com/v2'),
+        'timeout' => env('COHERE_TIMEOUT', 30),
+    ],
+
 ];

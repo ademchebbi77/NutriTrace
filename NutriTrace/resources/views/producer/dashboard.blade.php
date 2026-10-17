@@ -104,8 +104,20 @@
                                     <td>{{ $production->production_date->format('d/m/Y') }}</td>
                                     <td>{{ $production->product->name }}</td>
                                     <td>{{ format_quantity($production->quantity, $production->unit) }}</td>
-                                    <td><a href="{{ route('producteur.lots.show', $production->lot) }}">{{ $production->lot->lot_number }}</a></td>
-                                    <td><span class="badge badge-{{ $production->lot->status->color() }}">{{ $production->lot->status->label() }}</span></td>
+                                    <td>
+                                        @if ($production->lot)
+                                            <a href="{{ route('producteur.lots.show', $production->lot) }}">{{ $production->lot->lot_number }}</a>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if ($production->lot)
+                                            <span class="badge badge-{{ $production->lot->status->color() }}">{{ $production->lot->status->label() }}</span>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
