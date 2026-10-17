@@ -72,6 +72,7 @@ return [
             'lot_sent' => 'Lot envoyé',
             'lot_received' => 'Lot reçu',
             'lot_refused' => 'Lot refusé',
+            'lot_withdrawn' => 'Envoi annulé',
             'certification_approved' => 'Certification validée',
             'certification_rejected' => 'Certification refusée',
             'report_under_review' => 'Signalement en cours d\'examen',

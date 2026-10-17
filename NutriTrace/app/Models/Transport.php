@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[ObservedBy(TransportObserver::class)]
 #[Fillable(['transport_type', 'distance_km', 'departure_date'])]
@@ -27,6 +29,12 @@ class Transport extends Model
     protected $attributes = [
         'status' => TransportStatus::IN_TRANSIT->value,
     ];
+
+    /**
+     * Set before cancelling, so the journal tells a withdrawal by the shipper
+     * apart from a refusal by the receiver (not stored).
+     */
+    public bool $cancelledByShipper = false;
 
     /**
      * @return array<string, string>
@@ -63,6 +71,30 @@ class Transport extends Model
         return $this->belongsTo(User::class, 'recipient_id');
     }
 
+    /**
+     * Hand-over to a transformer carried by this transport, if any.
+     */
+    public function transfer(): HasOne
+    {
+        return $this->hasOne(LotTransfer::class);
+    }
+
+    /**
+     * Hand-over to a distributor carried by this transport, if any.
+     */
+    public function distribution(): HasOne
+    {
+        return $this->hasOne(Distribution::class);
+    }
+
+    /**
+     * AI anomaly analyses, the most recent first.
+     */
+    public function analyses(): HasMany
+    {
+        return $this->hasMany(TransportAnalysis::class)->latest('id');
+    }
+
     public function scopeVisibleTo(Builder $query, User $user): void
     {
         $query->unless($user->isAdmin(), fn (Builder $q) => $q->where(
@@ -84,5 +116,17 @@ class Transport extends Model
         $perUnit = $this->unit->kilograms();
 
         return $perUnit === null ? null : $this->quantity_transported * $perUnit;
+    }
+
+    /**
+     * kg CO2e of the trip (distance x tonnes x factor of the mode), or null when unknown.
+     */
+    public function co2Kg(): ?float
+    {
+        $mass = $this->massKg();
+
+        return $mass !== null && $this->distance_km !== null
+            ? $this->distance_km * ($mass / 1000) * config('footprint.emission_factors.transport.'.$this->transport_type->value)
+            : null;
     }
 }

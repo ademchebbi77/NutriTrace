@@ -10,8 +10,21 @@
             {{ __('transfers.transports.show_title', ['number' => $transport->lot->lot_number]) }}
             <span class="badge badge-{{ $transport->status->color() }} align-middle">{{ $transport->status->label() }}</span>
         </h1>
-        <a href="{{ area_route('transports.index') }}" class="btn btn-sm btn-light shadow-sm">
-            <i class="fas fa-arrow-left fa-sm"></i> {{ __('ui.back') }}</a>
+        <div class="mt-2 mt-sm-0">
+            @can('update', $transport)
+                <a href="{{ area_route('transports.edit', $transport) }}" class="btn btn-sm btn-primary shadow-sm">
+                    <i class="fas fa-pen fa-sm"></i> {{ __('ui.edit') }}</a>
+            @endcan
+            @can('delete', $transport)
+                <button type="button" class="btn btn-sm btn-danger shadow-sm" data-toggle="modal"
+                    data-target="#confirmDeleteModal"
+                    data-action="{{ area_route('transports.destroy', $transport) }}"
+                    data-label="{{ __('transfers.transports.cancel_label', ['number' => $transport->lot->lot_number]) }}">
+                    <i class="fas fa-ban fa-sm"></i> {{ __('transfers.transports.cancel') }}</button>
+            @endcan
+            <a href="{{ area_route('transports.index') }}" class="btn btn-sm btn-light shadow-sm">
+                <i class="fas fa-arrow-left fa-sm"></i> {{ __('ui.back') }}</a>
+        </div>
     </div>
 
     <div class="row">
@@ -57,46 +70,37 @@
             </div>
         </div>
 
-        @can('update', $transport)
-            <div class="col-lg-5">
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">{{ __('transfers.transports.correct') }}</h6>
-                    </div>
-                    <div class="card-body">
-                        <p class="small text-muted" id="correctHelp">{{ __('transfers.transports.correct_help') }}</p>
-                        <form method="POST" action="{{ area_route('transports.update', $transport) }}" novalidate>
-                            @csrf
-                            @method('PUT')
-                            <div class="form-group">
-                                <label for="transport_type">{{ __('transfers.fields.transport_type') }}</label>
-                                <select name="transport_type" id="transport_type" class="custom-select @error('transport_type') is-invalid @enderror" required>
-                                    @foreach ($transportTypes as $type)
-                                        <option value="{{ $type->value }}" @selected(old('transport_type', $transport->transport_type->value) === $type->value)>{{ $type->label() }}</option>
-                                    @endforeach
-                                </select>
-                                @error('transport_type')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="form-group">
-                                <label for="distance_km">{{ __('transfers.fields.distance_km') }}</label>
-                                <input type="number" step="0.1" min="0" name="distance_km" id="distance_km"
-                                    value="{{ old('distance_km', $transport->distance_km) }}" aria-describedby="correctHelp"
-                                    class="form-control @error('distance_km') is-invalid @enderror" required>
-                                @error('distance_km')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save fa-sm mr-1"></i> {{ __('ui.save') }}
-                            </button>
-                        </form>
-                    </div>
+        <div class="col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ __('transfers.transports.actors') }}</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">{{ __('transfers.fields.sender') }}</dt>
+                        <dd class="col-sm-7">{{ $transport->shipper->displayName() }}</dd>
+
+                        <dt class="col-sm-5">{{ __('transfers.fields.recipient') }}</dt>
+                        <dd class="col-sm-7 mb-0">{{ $transport->recipient?->displayName() ?? '—' }}</dd>
+                    </dl>
                 </div>
             </div>
-        @endcan
+
+            @include('ai.partials.transport-analysis')
+        </div>
 
     </div>
+
+    @if (config('ai.enabled'))
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-comments fa-sm mr-1"></i> {{ __('ai.assistant.title') }}</h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted">{{ __('ai.assistant.subtitle') }}</p>
+                @include('ai.partials.assistant', ['url' => area_route('transports.assistant', $transport), 'available' => $chatAvailable])
+            </div>
+        </div>
+    @endif
 
 @endsection

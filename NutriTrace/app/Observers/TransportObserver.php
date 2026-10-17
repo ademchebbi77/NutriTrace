@@ -59,7 +59,17 @@ class TransportObserver
                     occurredAt: $transport->arrival_date,
                     metadata: ['step' => 'arrival'],
                 ),
-                TransportStatus::CANCELLED => $this->recorder->record(
+                TransportStatus::CANCELLED => $transport->cancelledByShipper ? $this->recorder->record(
+                    lot: $transport->lot,
+                    type: EventType::TRANSPORT,
+                    description: __('events.transport.withdrawn', ['origin' => $transport->origin_label]),
+                    actor: $transport->shipper,
+                    location: $transport->origin_label,
+                    latitude: $transport->origin_latitude,
+                    longitude: $transport->origin_longitude,
+                    source: $transport,
+                    metadata: ['step' => 'withdrawn'],
+                ) : $this->recorder->record(
                     lot: $transport->lot,
                     type: EventType::TRANSPORT,
                     description: __('events.transport.cancelled', ['destination' => $transport->destination_label]),

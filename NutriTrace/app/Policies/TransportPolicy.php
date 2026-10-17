@@ -20,10 +20,26 @@ class TransportPolicy
     }
 
     /**
+     * Opening a transport sends a lot, which only producers and transformers do.
+     */
+    public function create(User $user): bool
+    {
+        return $user->hasRole(UserRole::PRODUCTEUR, UserRole::TRANSFORMATEUR);
+    }
+
+    /**
      * The shipper can correct the mode and distance while the lot is on the road.
      */
     public function update(User $user, Transport $transport): bool
     {
         return $transport->shipper_id === $user->id && $transport->status === TransportStatus::IN_TRANSIT;
+    }
+
+    /**
+     * Deleting cancels the shipment: same window as a correction.
+     */
+    public function delete(User $user, Transport $transport): bool
+    {
+        return $this->update($user, $transport);
     }
 }

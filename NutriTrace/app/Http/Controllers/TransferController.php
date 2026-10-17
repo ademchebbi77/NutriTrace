@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\TransportType;
-use App\Enums\UserRole;
 use App\Http\Requests\SendLotRequest;
 use App\Models\Distribution;
 use App\Models\Lot;
@@ -63,19 +62,13 @@ class TransferController extends Controller
         ]);
     }
 
-    public function create(Request $request, Lot $lot): View
+    public function create(Request $request, Lot $lot, LotDispatcher $dispatcher): View
     {
         Gate::authorize('send', $lot);
 
         return view('transfers.create', [
             'lot' => $lot->load('product', 'production'),
-            'recipients' => User::operational()
-                ->whereIn('role', [UserRole::TRANSFORMATEUR, UserRole::DISTRIBUTEUR])
-                ->whereKeyNot($request->user()->id)
-                ->with('organization')
-                ->get()
-                ->sortBy(fn (User $user) => $user->displayName())
-                ->groupBy(fn (User $user) => $user->role->label()),
+            'recipients' => $dispatcher->recipientsFor($request->user()),
             'transportTypes' => TransportType::cases(),
         ]);
     }

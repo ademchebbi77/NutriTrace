@@ -5,7 +5,13 @@
 @section('content')
 
     <!-- Page Heading -->
-    <h1 class="h3 mb-4 text-gray-800">{{ __('transfers.transports.title') }}</h1>
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{{ __('transfers.transports.title') }}</h1>
+        @can('create', App\Models\Transport::class)
+            <a href="{{ area_route('transports.create') }}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-plus fa-sm text-white-50"></i> {{ __('transfers.transports.add') }}</a>
+        @endcan
+    </div>
 
     <!-- DataTales Example -->
     <div class="card shadow mb-4">
@@ -46,10 +52,23 @@
                                         {{ $transport->distance_km !== null ? number_format($transport->distance_km, 0, ',', ' ').' km' : '—' }}
                                     </td>
                                     <td><span class="badge badge-{{ $transport->status->color() }}">{{ $transport->status->label() }}</span></td>
-                                    <td>
+                                    <td class="text-nowrap">
                                         <a href="{{ area_route('transports.show', $transport) }}" class="btn btn-info btn-circle btn-sm"
                                             title="{{ __('ui.view') }}" aria-label="{{ __('ui.view') }} {{ $transport->lot->lot_number }}">
                                             <i class="fas fa-eye"></i></a>
+                                        @can('update', $transport)
+                                            <a href="{{ area_route('transports.edit', $transport) }}" class="btn btn-primary btn-circle btn-sm"
+                                                title="{{ __('ui.edit') }}" aria-label="{{ __('ui.edit') }} {{ $transport->lot->lot_number }}">
+                                                <i class="fas fa-pen"></i></a>
+                                        @endcan
+                                        @can('delete', $transport)
+                                            <button type="button" class="btn btn-danger btn-circle btn-sm" data-toggle="modal"
+                                                data-target="#confirmDeleteModal"
+                                                data-action="{{ area_route('transports.destroy', $transport) }}"
+                                                data-label="{{ __('transfers.transports.cancel_label', ['number' => $transport->lot->lot_number]) }}"
+                                                title="{{ __('transfers.transports.cancel') }}" aria-label="{{ __('transfers.transports.cancel') }} {{ $transport->lot->lot_number }}">
+                                                <i class="fas fa-trash"></i></button>
+                                        @endcan
                                     </td>
                                 </tr>
                             @endforeach

@@ -175,6 +175,21 @@
         </div>
     </section>
 
+    <!-- AI assistant-->
+    @if (config('ai.enabled'))
+        <section class="py-5" id="assistant">
+            <div class="container px-4 px-lg-5">
+                <h2 class="fw-bolder mb-1"><i class="bi-chat-dots" aria-hidden="true"></i> {{ __('ai.assistant.title') }}</h2>
+                <p class="text-muted mb-4">{{ __('ai.assistant.subtitle') }}</p>
+                <div class="row">
+                    <div class="col-lg-8">
+                        @include('ai.partials.assistant', ['url' => route('trace.assistant', $lot->public_token), 'available' => $aiAvailable])
+                    </div>
+                </div>
+            </div>
+        </section>
+    @endif
+
     <!-- Environmental card-->
     <section class="py-5" id="empreinte">
         <div class="container px-4 px-lg-5">

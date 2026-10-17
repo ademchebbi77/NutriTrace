@@ -16,6 +16,7 @@ return [
         'arrival' => 'Arrivée à :destination.',
         'corrected' => 'Correction du transport : :mode, :distance km.',
         'cancelled' => 'Livraison refusée par :destination : retour à l\'expéditeur.',
+        'withdrawn' => 'Envoi annulé par l\'expéditeur : le lot reste à :origin.',
     ],
     'distribution' => [
         'shipped' => 'Expédition de :quantity au distributeur :distributor.',

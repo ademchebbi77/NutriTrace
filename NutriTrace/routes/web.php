@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\Producer;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicSite\AssistantController;
 use App\Http\Controllers\PublicSite\CatalogController;
 use App\Http\Controllers\PublicSite\CompareController;
 use App\Http\Controllers\PublicSite\FeedbackController;
@@ -33,6 +34,9 @@ Route::middleware('throttle:public')->group(function () {
     Route::get('/trace/{token}', [TraceController::class, 'show'])->name('trace.show');
     Route::get('/trace/{token}/certifications/{certification}/preuve', [TraceController::class, 'proof'])->name('trace.proof');
 });
+
+// Local AI assistant of the traceability page (generation is costly: tight limit).
+Route::post('/trace/{token}/assistant', [AssistantController::class, 'ask'])->middleware('throttle:10,1')->name('trace.assistant');
 
 // Actions of a signed-in visitor on the public pages.
 Route::middleware(['auth', 'verified', 'active', 'throttle:20,1'])->group(function () {
@@ -100,6 +104,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
     require __DIR__.'/modules/lots.php';
     require __DIR__.'/modules/transformations.php';
     require __DIR__.'/modules/transports.php';
+    require __DIR__.'/modules/ai.php';
     require __DIR__.'/modules/distributions.php';
     require __DIR__.'/modules/certifications.php';
     require __DIR__.'/modules/impacts.php';

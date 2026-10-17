@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\DistributionStatus;
 use App\Enums\LotStatus;
+use App\Enums\TransferStatus;
+use App\Enums\TransportStatus;
 use App\Enums\UserRole;
 use App\Models\Distribution;
 use App\Models\Lot;
@@ -10,6 +13,7 @@ use App\Models\LotTransfer;
 use App\Models\Transport;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -62,6 +66,42 @@ class LotDispatcher
 
             return $handover;
         });
+    }
+
+    /**
+     * The shipper calls a lot back while it is on the road: the transport and its
+     * hand-over are cancelled (kept for the journal) and the lot is at rest again.
+     */
+    public function cancel(Transport $transport): void
+    {
+        DB::transaction(function () use ($transport) {
+            $transport->cancelledByShipper = true;
+            $transport->forceFill(['status' => TransportStatus::CANCELLED])->save();
+
+            $transport->transfer?->forceFill(['status' => TransferStatus::CANCELLED])->save();
+            $transport->distribution?->forceFill(['status' => DistributionStatus::CANCELLED])->save();
+
+            $lot = $transport->lot->refresh();
+            $lot->forceFill(['status' => $lot->restingStatusFor($transport->shipper)])->save();
+
+            $this->audit->log('lot.withdrawn', $lot, $lot->lot_number);
+        });
+    }
+
+    /**
+     * Approved transformers and distributors the sender can ship to, grouped by role.
+     *
+     * @return Collection<string, Collection<int, User>>
+     */
+    public function recipientsFor(User $sender): Collection
+    {
+        return User::operational()
+            ->whereIn('role', [UserRole::TRANSFORMATEUR, UserRole::DISTRIBUTEUR])
+            ->whereKeyNot($sender->id)
+            ->with('organization')
+            ->get()
+            ->sortBy(fn (User $user) => $user->displayName())
+            ->groupBy(fn (User $user) => $user->role->label());
     }
 
     /**

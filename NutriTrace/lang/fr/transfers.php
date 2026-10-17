@@ -38,6 +38,7 @@ return [
     ],
 
     'attributes' => [
+        'lot_id' => 'lot',
         'recipient_id' => 'destinataire',
         'transport_type' => 'mode de transport',
         'departure_date' => 'date de départ',
@@ -50,6 +51,7 @@ return [
     'received' => 'Réception du lot :lot confirmée : vous en êtes maintenant le détenteur.',
     'refused' => 'Le lot :lot a été refusé et retourne à son expéditeur.',
     'transport_updated' => 'Le transport a été mis à jour.',
+    'transport_cancelled' => 'L\'envoi du lot :lot a été annulé : le lot est de nouveau disponible.',
 
     'receptions' => [
         'title' => 'Réceptions',
@@ -73,6 +75,15 @@ return [
         'correct' => 'Corriger le transport',
         'correct_help' => 'Possible tant que le lot est en route. La correction recalcule l\'empreinte du lot.',
         'no_distance' => 'Non renseignée',
+        'actors' => 'Expéditeur et destinataire',
+        'add' => 'Nouveau transport',
+        'create_title' => 'Nouveau transport',
+        'edit_title' => 'Modifier le transport du lot :number',
+        'choose_lot' => 'Choisir un lot disponible',
+        'no_sendable' => 'Aucun lot disponible à l\'envoi pour le moment.',
+        'lot_unavailable' => 'Ce lot n\'est pas disponible à l\'envoi.',
+        'cancel' => 'Annuler l\'envoi',
+        'cancel_label' => ':number : l\'envoi sera annulé et le lot vous reviendra. L\'annulation reste inscrite dans le journal de traçabilité.',
         'direction_out' => 'Envoi',
         'direction_in' => 'Réception',
     ],

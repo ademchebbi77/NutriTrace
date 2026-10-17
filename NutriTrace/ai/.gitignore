@@ -1,0 +1,6 @@
+# Exported data, generated datasets and trained models are rebuilt with the scripts (see README).
+/data/
+/models/
+/.venv/
+__pycache__/
+.pytest_cache/

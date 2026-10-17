@@ -8,6 +8,7 @@ enum DistributionStatus: string
     case RECEIVED = 'received';
     case IN_STORE = 'in_store';
     case REJECTED = 'rejected';
+    case CANCELLED = 'cancelled';
 
     public function label(): string
     {
@@ -21,6 +22,7 @@ enum DistributionStatus: string
             self::RECEIVED => 'primary',
             self::IN_STORE => 'success',
             self::REJECTED => 'danger',
+            self::CANCELLED => 'secondary',
         };
     }
 }

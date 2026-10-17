@@ -46,6 +46,7 @@ return [
         'pending' => 'En attente de réception',
         'accepted' => 'Reçu',
         'rejected' => 'Refusé',
+        'cancelled' => 'Annulé par l\'expéditeur',
     ],
 
     'distribution_status' => [
@@ -53,6 +54,7 @@ return [
         'received' => 'Reçu',
         'in_store' => 'En magasin',
         'rejected' => 'Refusé',
+        'cancelled' => 'Annulé par l\'expéditeur',
     ],
 
     'event_type' => [

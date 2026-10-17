@@ -7,6 +7,7 @@ use App\Http\Controllers\CertificationController;
 use App\Http\Controllers\Controller;
 use App\Models\Certification;
 use App\Models\Lot;
+use App\Services\Ai\LotAssistant;
 use App\Services\LotInsightsBuilder;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -18,7 +19,7 @@ class TraceController extends Controller
     /**
      * Public traceability page of a lot, reached by QR code. No login required.
      */
-    public function show(Request $request, string $token, LotInsightsBuilder $insights): View
+    public function show(Request $request, string $token, LotInsightsBuilder $insights, LotAssistant $assistant): View
     {
         $lot = $this->findLot($token);
 
@@ -44,6 +45,7 @@ class TraceController extends Controller
                 ->get(),
             'reportTypes' => ReportType::cases(),
             'qr' => QrCode::format('svg')->size(140)->margin(1)->generate($lot->publicUrl()),
+            'aiAvailable' => $assistant->isAvailable(),
         ]);
     }
 
