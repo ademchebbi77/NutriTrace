@@ -7,9 +7,12 @@
 | Loaded inside the back office group of routes/web.php.
 */
 
+use App\Http\Controllers\ProductionAiController;
 use App\Http\Controllers\ProductionController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('producteur')->name('producteur.')->middleware('role:PRODUCTEUR')->group(function () {
     Route::resource('productions', ProductionController::class);
+    Route::get('productions/{production}/forecast', [ProductionAiController::class, 'show'])
+        ->name('productions.forecast');
 });

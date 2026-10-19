@@ -155,6 +155,7 @@ class AiClient
     }
 
     /**
+<<<<<<< Updated upstream
      * @param  array<string, mixed>  $declaration  See ImpactAiContext::forDeclaration().
      * @return ?array{is_anomaly: bool, label: string, confidence: float, findings: list<array<string, mixed>>, reasons: list<string>, explanation: ?string, model: string}
      */
@@ -179,6 +180,14 @@ class AiClient
     public function moderateReview(array $review, bool $explain = false): ?array
     {
         return $this->post('/reviews/moderate', ['review' => $review, 'explain' => $explain]);
+=======
+     * @param  list<array<string, mixed>>  $records  See ProductionForecastContext::forProduction().
+     * @return ?array<string, mixed>
+     */
+    public function productionForecast(array $records, string $unit): ?array
+    {
+        return $this->post('/production/forecast', ['records' => $records, 'unit' => $unit]);
+>>>>>>> Stashed changes
     }
 
     /**

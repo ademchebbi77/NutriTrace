@@ -549,3 +549,18 @@ h1.h3 {
         transform: none;
     }
 }
+
+/* AI forecast panel: the disclaimer must never be truncated or clamped,
+   whatever the viewport or any parent/injected stylesheet does. */
+#ai-forecast-body .ai-disclaimer {
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+    max-height: none !important;
+    height: auto !important;
+}
+
+#ai-forecast-body .ai-disclaimer p {
+    white-space: normal !important;
+    overflow-wrap: break-word;
+}

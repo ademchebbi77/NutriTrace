@@ -455,6 +455,8 @@ def train(request: TrainRequest) -> dict[str, Any]:
     log_file = TRAIN_LOG_PATH.open("a" if request.resume else "w", encoding="utf-8")
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
     command = [sys.executable, "-X", "utf8", str(ROOT / "scripts" / "train_module.py"), "--module", request.module, "--epochs", str(request.epochs)]
+    if NO_LLM:
+        command.append("--skip-llm")
     state["process"] = subprocess.Popen(
         command + (["--resume"] if request.resume else []),
         cwd=ROOT, stdout=log_file, stderr=subprocess.STDOUT, creationflags=flags, start_new_session=os.name != "nt",
@@ -489,6 +491,40 @@ def cancel() -> dict[str, Any]:
         os.killpg(process.pid, signal.SIGTERM)
     train_status.write(state="cancelled", message="Entraînement annulé")
     return {**train_status.read(), "running": False}
+
+
+# --- production forecasting -----------------------------------------------------------------
+
+class ProductionRecord(BaseModel):
+    production_date: str
+    # No gt=0 here: invalid quantities are filtered inside production.forecast(),
+    # a strict check would reject the whole request for a single bad record.
+    quantity: float
+    unit: str
+    production_method: str = "conventional"
+
+
+class ProductionForecastRequest(BaseModel):
+    records: list[ProductionRecord] = Field(min_length=1, max_length=500)
+    unit: str
+
+
+@app.post("/production/forecast", dependencies=[Depends(check_token)])
+def production_forecast(request: ProductionForecastRequest) -> dict[str, Any]:
+    """
+    Estimate future production quantity from historical records.
+    All records must share the same unit (enforced by the caller).
+    Returns a structured result with status, history, statistics, trend,
+    baseline estimate, and an ML prediction when enough data is available.
+    """
+    from nutritrace_ai.production import forecast
+
+    records = [r.model_dump() for r in request.records]
+    try:
+        return forecast(records, request.unit)
+    except Exception as error:  # noqa: BLE001
+        log.warning("production/forecast error: %s", error)
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 if __name__ == "__main__":
