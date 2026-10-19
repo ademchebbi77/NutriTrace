@@ -5,6 +5,8 @@ namespace Tests\Feature\Modules;
 use App\Models\Product;
 use App\Models\Production;
 use App\Models\User;
+use App\Services\Ai\AiClient;
+use App\Services\Ai\ProductionForecastService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -33,22 +35,22 @@ class ProductionForecastTest extends TestCase
     private function fakeServiceOk(array $payload = []): void
     {
         $default = [
-            'status'            => 'statistical_only',
-            'unit'              => 'kg',
-            'history'           => [['date' => '2023-06-01', 'quantity' => 3000, 'method' => 'organic']],
-            'statistics'        => ['count' => 1, 'mean' => 3000, 'std' => null, 'min' => 3000, 'max' => 3000, 'last' => 3000],
-            'trend_per_year'    => null,
-            'trend_direction'   => null,
+            'status' => 'statistical_only',
+            'unit' => 'kg',
+            'history' => [['date' => '2023-06-01', 'quantity' => 3000, 'method' => 'organic']],
+            'statistics' => ['count' => 1, 'mean' => 3000, 'std' => null, 'min' => 3000, 'max' => 3000, 'last' => 3000],
+            'trend_per_year' => null,
+            'trend_direction' => null,
             'baseline_estimate' => 3000.0,
-            'prediction'        => null,
+            'prediction' => null,
             'prediction_period' => null,
-            'model_info'        => ['name' => 'baseline_mean', 'trained' => false, 'reason' => 'not enough data'],
-            'explanation'       => 'Not enough data.',
+            'model_info' => ['name' => 'baseline_mean', 'trained' => false, 'reason' => 'not enough data'],
+            'explanation' => 'Not enough data.',
         ];
 
         Http::fake([
-            '*/health'               => Http::response(['ready' => true, 'chat' => false]),
-            '*/production/forecast'  => Http::response(array_merge($default, $payload)),
+            '*/health' => Http::response(['ready' => true, 'chat' => false]),
+            '*/production/forecast' => Http::response(array_merge($default, $payload)),
         ]);
     }
 
@@ -60,6 +62,7 @@ class ProductionForecastTest extends TestCase
     private function makeProduction(User $producer, array $attributes = []): Production
     {
         $product = Product::factory()->create(['created_by' => $producer->id]);
+
         return Production::factory()->by($producer)->create(
             array_merge(['product_id' => $product->id], $attributes)
         );
@@ -72,7 +75,7 @@ class ProductionForecastTest extends TestCase
     public function test_producer_can_access_forecast_for_own_production(): void
     {
         $this->fakeServiceOk();
-        $producer   = User::factory()->producer()->create();
+        $producer = User::factory()->producer()->create();
         $production = $this->makeProduction($producer);
 
         $this->actingAs($producer)
@@ -84,7 +87,7 @@ class ProductionForecastTest extends TestCase
     public function test_producer_cannot_access_forecast_of_another_producer(): void
     {
         $this->fakeServiceOk();
-        $stranger   = User::factory()->producer()->create();
+        $stranger = User::factory()->producer()->create();
         $production = Production::factory()->create(); // owned by a different producer
 
         $this->actingAs($stranger)
@@ -103,7 +106,7 @@ class ProductionForecastTest extends TestCase
     public function test_non_producer_role_cannot_access_route(): void
     {
         $transformer = User::factory()->transformer()->create();
-        $production  = Production::factory()->create();
+        $production = Production::factory()->create();
 
         $this->actingAs($transformer)
             ->getJson("/producteur/productions/{$production->id}/forecast")
@@ -119,7 +122,7 @@ class ProductionForecastTest extends TestCase
         $this->fakeServiceDown();
         cache()->forget('ai.service.up');
 
-        $producer   = User::factory()->producer()->create();
+        $producer = User::factory()->producer()->create();
         $production = $this->makeProduction($producer);
 
         $result = $this->actingAs($producer)
@@ -137,7 +140,7 @@ class ProductionForecastTest extends TestCase
         $this->fakeServiceDown();
         cache()->forget('ai.service.up');
 
-        $producer   = User::factory()->producer()->create();
+        $producer = User::factory()->producer()->create();
         $production = $this->makeProduction($producer);
 
         // The main page must load — the AI panel loads asynchronously
@@ -153,7 +156,7 @@ class ProductionForecastTest extends TestCase
     public function test_response_contains_all_required_keys(): void
     {
         $this->fakeServiceOk();
-        $producer   = User::factory()->producer()->create();
+        $producer = User::factory()->producer()->create();
         $production = $this->makeProduction($producer);
 
         $this->actingAs($producer)
@@ -176,12 +179,12 @@ class ProductionForecastTest extends TestCase
     public function test_ok_status_with_ml_prediction_forwarded(): void
     {
         $this->fakeServiceOk([
-            'status'     => 'ok',
+            'status' => 'ok',
             'prediction' => 3500.0,
             'model_info' => ['name' => 'gradient_boosting', 'trained' => true, 'mae' => 120.5, 'train_size' => 10, 'test_size' => 3, 'reason' => 'ok'],
         ]);
 
-        $producer   = User::factory()->producer()->create();
+        $producer = User::factory()->producer()->create();
         $production = $this->makeProduction($producer);
 
         $result = $this->actingAs($producer)
@@ -197,13 +200,13 @@ class ProductionForecastTest extends TestCase
     public function test_insufficient_data_status_forwarded(): void
     {
         $this->fakeServiceOk([
-            'status'            => 'insufficient_data',
-            'statistics'        => null,
+            'status' => 'insufficient_data',
+            'statistics' => null,
             'baseline_estimate' => null,
-            'prediction'        => null,
+            'prediction' => null,
         ]);
 
-        $producer   = User::factory()->producer()->create();
+        $producer = User::factory()->producer()->create();
         $production = $this->makeProduction($producer);
 
         $result = $this->actingAs($producer)
@@ -224,19 +227,19 @@ class ProductionForecastTest extends TestCase
         $this->fakeServiceOk();
 
         $producer = User::factory()->producer()->create();
-        $product  = Product::factory()->create(['created_by' => $producer->id]);
+        $product = Product::factory()->create(['created_by' => $producer->id]);
 
         // Create two productions for the same product/unit
         Production::factory()->by($producer)->create([
-            'product_id'      => $product->id,
-            'quantity'        => 2000,
-            'unit'            => 'kg',
+            'product_id' => $product->id,
+            'quantity' => 2000,
+            'unit' => 'kg',
             'production_date' => '2022-06-01',
         ]);
         $production = Production::factory()->by($producer)->create([
-            'product_id'      => $product->id,
-            'quantity'        => 2500,
-            'unit'            => 'kg',
+            'product_id' => $product->id,
+            'quantity' => 2500,
+            'unit' => 'kg',
             'production_date' => '2023-06-01',
         ]);
 
@@ -249,6 +252,7 @@ class ProductionForecastTest extends TestCase
                 return false;
             }
             $records = $request['records'];
+
             return count($records) === 2
                 && $records[0]['quantity'] == 2000
                 && $records[1]['quantity'] == 2500;
@@ -260,7 +264,7 @@ class ProductionForecastTest extends TestCase
         $this->fakeServiceOk();
 
         $producer = User::factory()->producer()->create();
-        $product  = Product::factory()->create(['created_by' => $producer->id]);
+        $product = Product::factory()->create(['created_by' => $producer->id]);
 
         // kg production
         Production::factory()->by($producer)->create([
@@ -283,8 +287,11 @@ class ProductionForecastTest extends TestCase
             }
             $records = $request['records'];
             foreach ($records as $r) {
-                if ($r['unit'] !== 'kg') return false;
+                if ($r['unit'] !== 'kg') {
+                    return false;
+                }
             }
+
             return true;
         });
     }
@@ -294,7 +301,7 @@ class ProductionForecastTest extends TestCase
         $this->fakeServiceOk();
 
         $producer = User::factory()->producer()->create();
-        $product  = Product::factory()->create(['created_by' => $producer->id]);
+        $product = Product::factory()->create(['created_by' => $producer->id]);
 
         Production::factory()->by($producer)->create([
             'product_id' => $product->id, 'quantity' => 0, 'unit' => 'kg',
@@ -315,6 +322,7 @@ class ProductionForecastTest extends TestCase
                 return false;
             }
             $records = $request['records'];
+
             return count($records) === 1 && $records[0]['quantity'] == 1200;
         });
     }
@@ -324,7 +332,7 @@ class ProductionForecastTest extends TestCase
         $this->fakeServiceOk();
 
         $producer = User::factory()->producer()->create();
-        $product  = Product::factory()->create(['created_by' => $producer->id]);
+        $product = Product::factory()->create(['created_by' => $producer->id]);
 
         foreach ([1, 2] as $i) {
             Production::factory()->by($producer)->create([
@@ -344,6 +352,7 @@ class ProductionForecastTest extends TestCase
             if (! str_ends_with($request->url(), '/production/forecast')) {
                 return false;
             }
+
             return count($request['records']) === 2;
         });
     }
@@ -353,7 +362,7 @@ class ProductionForecastTest extends TestCase
         $this->fakeServiceOk();
 
         $producer = User::factory()->producer()->create();
-        $product  = Product::factory()->create(['created_by' => $producer->id]);
+        $product = Product::factory()->create(['created_by' => $producer->id]);
 
         $production = Production::factory()->by($producer)->create([
             'product_id' => $product->id, 'quantity' => 150, 'unit' => 'kg', 'production_date' => '2026-01-10',
@@ -376,6 +385,7 @@ class ProductionForecastTest extends TestCase
             $dates = array_column($request['records'], 'production_date');
             $sorted = $dates;
             sort($sorted);
+
             return $dates === $sorted && $dates[0] === '2024-01-10';
         });
     }
@@ -386,7 +396,7 @@ class ProductionForecastTest extends TestCase
         Http::fake(['*/health' => Http::response(['ready' => true])]);
 
         $producer = User::factory()->producer()->create();
-        $product  = Product::factory()->create(['created_by' => $producer->id]);
+        $product = Product::factory()->create(['created_by' => $producer->id]);
 
         $production = Production::factory()->by($producer)->create([
             'product_id' => $product->id, 'quantity' => 0, 'unit' => 'kg',
@@ -429,8 +439,8 @@ class ProductionForecastTest extends TestCase
     {
         Http::fake([
             '*/health' => Http::response([
-                'ready'   => true,
-                'chat'    => false,
+                'ready' => true,
+                'chat' => false,
                 'anomaly' => true,
             ]),
         ]);
@@ -438,7 +448,7 @@ class ProductionForecastTest extends TestCase
         $producer = User::factory()->producer()->create();
 
         // The health check is called internally; we verify it resolves correctly
-        $client = app(\App\Services\Ai\AiClient::class);
+        $client = app(AiClient::class);
         $this->assertTrue($client->available());
         $this->assertTrue($client->has('anomaly'));
     }
@@ -446,21 +456,21 @@ class ProductionForecastTest extends TestCase
     public function test_cohere_client_unaffected_by_production_ai(): void
     {
         // ProductionForecastService must not instantiate CohereClient
-        $service = app(\App\Services\Ai\ProductionForecastService::class);
-        $this->assertInstanceOf(\App\Services\Ai\ProductionForecastService::class, $service);
+        $service = app(ProductionForecastService::class);
+        $this->assertInstanceOf(ProductionForecastService::class, $service);
 
         // CohereClient should not be called during production forecast
         Http::fake([
-            '*/health'              => Http::response(['ready' => true]),
+            '*/health' => Http::response(['ready' => true]),
             '*/production/forecast' => Http::response(['status' => 'insufficient_data', 'unit' => 'kg',
                 'history' => [], 'statistics' => null, 'trend_per_year' => null, 'trend_direction' => null,
                 'baseline_estimate' => null, 'prediction' => null,
                 'model_info' => ['name' => null, 'trained' => false, 'reason' => 'test'],
                 'explanation' => 'test']),
-            'api.cohere.com/*'      => Http::response([], 500), // should never be called
+            'api.cohere.com/*' => Http::response([], 500), // should never be called
         ]);
 
-        $producer   = User::factory()->producer()->create();
+        $producer = User::factory()->producer()->create();
         $production = $this->makeProduction($producer);
 
         $this->actingAs($producer)

@@ -3,18 +3,17 @@
 namespace Tests\Feature\Modules;
 
 use App\Enums\CertificationStatus;
-use App\Enums\LotStatus;
 use App\Enums\ProductStatus;
 use App\Models\Category;
 use App\Models\Certification;
 use App\Models\Lot;
 use App\Models\Product;
 use App\Models\Production;
-use App\Models\Transport;
 use App\Models\User;
 use App\Services\Ai\CohereClient;
 use App\Services\Ai\ProductRiskAnalyzer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -378,7 +377,7 @@ class ProductRiskAnalysisTest extends TestCase
     public function test_cohere_client_handles_connection_errors(): void
     {
         Http::fake([
-            'api.cohere.com/*' => fn () => throw new \Illuminate\Http\Client\ConnectionException('Connection failed'),
+            'api.cohere.com/*' => fn () => throw new ConnectionException('Connection failed'),
         ]);
 
         config(['services.cohere.api_key' => 'test-key']);

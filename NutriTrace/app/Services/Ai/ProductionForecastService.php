@@ -56,16 +56,16 @@ class ProductionForecastService
     private function noData(): array
     {
         return [
-            'status'           => 'no_data',
-            'unit'             => null,
-            'history'          => [],
-            'statistics'       => null,
-            'trend_per_year'   => null,
-            'trend_direction'  => null,
+            'status' => 'no_data',
+            'unit' => null,
+            'history' => [],
+            'statistics' => null,
+            'trend_per_year' => null,
+            'trend_direction' => null,
             'baseline_estimate' => null,
-            'prediction'       => null,
-            'model_info'       => ['name' => null, 'trained' => false, 'reason' => null],
-            'explanation'      => __('ai.production.no_data'),
+            'prediction' => null,
+            'model_info' => ['name' => null, 'trained' => false, 'reason' => null],
+            'explanation' => __('ai.production.no_data'),
         ];
     }
 
@@ -73,16 +73,16 @@ class ProductionForecastService
     private function unavailable(): array
     {
         return [
-            'status'           => 'service_unavailable',
-            'unit'             => null,
-            'history'          => [],
-            'statistics'       => null,
-            'trend_per_year'   => null,
-            'trend_direction'  => null,
+            'status' => 'service_unavailable',
+            'unit' => null,
+            'history' => [],
+            'statistics' => null,
+            'trend_per_year' => null,
+            'trend_direction' => null,
             'baseline_estimate' => null,
-            'prediction'       => null,
-            'model_info'       => ['name' => null, 'trained' => false, 'reason' => null],
-            'explanation'      => __('ai.production.unavailable'),
+            'prediction' => null,
+            'model_info' => ['name' => null, 'trained' => false, 'reason' => null],
+            'explanation' => __('ai.production.unavailable'),
         ];
     }
 }

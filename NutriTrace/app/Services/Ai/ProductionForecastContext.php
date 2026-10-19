@@ -3,7 +3,6 @@
 namespace App\Services\Ai;
 
 use App\Models\Production;
-use App\Models\User;
 
 /**
  * Builds the payload sent to POST /production/forecast on the Python service.
@@ -55,8 +54,8 @@ class ProductionForecastContext
 
             $records[] = [
                 'production_date' => $p->production_date->toDateString(),
-                'quantity'        => $quantity,
-                'unit'            => $p->unit->value,
+                'quantity' => $quantity,
+                'unit' => $p->unit->value,
                 'production_method' => $p->production_method->value,
             ];
         }
@@ -72,7 +71,7 @@ class ProductionForecastContext
 
         return [
             'records' => $records,
-            'unit'    => $unit,
+            'unit' => $unit,
         ];
     }
 }

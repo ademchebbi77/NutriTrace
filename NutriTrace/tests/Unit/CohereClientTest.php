@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Services\Ai\CohereClient;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -103,7 +104,7 @@ class CohereClientTest extends TestCase
     public function test_chat_returns_null_on_connection_error(): void
     {
         Http::fake([
-            'api.cohere.com/*' => fn () => throw new \Illuminate\Http\Client\ConnectionException('Connection timeout'),
+            'api.cohere.com/*' => fn () => throw new ConnectionException('Connection timeout'),
         ]);
 
         $client = new CohereClient;
