@@ -26,13 +26,13 @@ const dataTableFrench = {
 };
 
 $(function () {
-    // Any table marked with .datatable gets search, sort and pagination.
+    // Any table marked with .datatable gets search, sort and pagination; the instance is kept on the element.
     $('table.datatable').each(function () {
-        new DataTable(this, {
+        $(this).data('datatable', new DataTable(this, {
             language: dataTableFrench,
             pageLength: 10,
             columnDefs: [{ targets: 'no-sort', orderable: false, searchable: false }],
-        });
+        }));
     });
 
     // Confirmation modals (delete, refuse, reject...): the button that opens the modal

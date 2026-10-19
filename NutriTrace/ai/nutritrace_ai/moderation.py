@@ -20,8 +20,10 @@ LABELS = ["ok", "insult", "spam", "off_topic", "personal_data"]
 LABEL_TEXT = {"ok": "avis conforme", "insult": "propos injurieux", "spam": "publicité ou spam", "off_topic": "hors sujet",
               "personal_data": "données personnelles"}
 
-EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
-PHONE = re.compile(r"(?<!\d)(?:\+?216[\s.-]?)?(?:\d[\s.-]?){8}(?!\d)")
+# Written without nested or overlapping repetitions, so matching stays linear on any text.
+EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+# Tunisian numbers: 8 digits written 2-3-3 or 2-2-2-2, optionally after +216.
+PHONE = re.compile(r"(?<!\d)(?:\+?216[ .-]?)?(?:\d{2}[ .-]?\d{3}[ .-]?\d{3}|\d{2}[ .-]?\d{2}[ .-]?\d{2}[ .-]?\d{2})(?!\d)")
 LINK = re.compile(r"(https?://|www\.|\.com\b|\.tn\b|\.fr\b)", re.I)
 INSULTS = ["connard", "connards", "salaud", "salauds", "escroc", "escrocs", "voleur", "voleurs", "idiot", "idiots", "abruti", "abrutis",
            "crétin", "crétins", "imbécile", "imbéciles", "minable", "minables", "pourri", "pourris", "ordure", "ordures", "merde", "nul à chier",

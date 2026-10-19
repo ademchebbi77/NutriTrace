@@ -24,7 +24,9 @@ class Example:
     checks: list[str] = field(default_factory=list)
 
 
-PRODUCTION = re.compile(r"^Production de (?P<quantity>.+?) de (?P<name>.+) \(méthode (?P<method>.+)\)\.$")
+# "Production de 1 100 kg de Piments Baklouti (méthode conventionnelle)." — character classes
+# that cannot overlap, so matching stays linear.
+PRODUCTION = re.compile(r"^Production de (?P<quantity>[\d ,]+ [^\s\d]+) de (?P<name>[^(]+) \(méthode (?P<method>[^)]+)\)\.$")
 
 
 def productions(ctx: dict[str, Any]) -> list[dict[str, Any]]:

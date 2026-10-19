@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
           php-version: '8.4'
           extensions: mbstring, pdo_sqlite, sqlite3, intl, bcmath, gd, fileinfo
@@ -74,7 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
           php-version: '8.4'
           coverage: none
@@ -107,8 +107,9 @@ jobs:
           cache: npm
           cache-dependency-path: NutriTrace/package-lock.json
 
+      # --ignore-scripts: the install scripts of the packages do not run (the build does not need them).
       - name: Install JavaScript dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Build the assets
         run: npm run build
@@ -126,12 +127,13 @@ jobs:
         with:
           python-version: '3.11'
           cache: pip
-          cache-dependency-path: NutriTrace/ai/requirements.txt
+          cache-dependency-path: NutriTrace/ai/requirements-ci.txt
 
       # Not requirements.txt: it pulls PyTorch and CUDA (several GB), which the tests do not
       # need (they use a fake LLM). Training and the real LLM stay on the machine with the GPU.
+      # Pinned versions, prebuilt wheels only: no package code runs during the installation.
       - name: Install Python dependencies
-        run: pip install fastapi uvicorn "pydantic>=2.5" scikit-learn numpy joblib pypdf pytest pytest-cov httpx
+        run: pip install --only-binary :all: -r requirements-ci.txt
 
       - name: Run the tests with coverage
         run: python -X utf8 -m pytest -q tests --cov=nutritrace_ai --cov=server --cov-report=xml:coverage.xml
@@ -168,7 +170,7 @@ jobs:
 
       # Settings in sonar-project.properties at the repository root.
       - name: Analyse with SonarCloud
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io

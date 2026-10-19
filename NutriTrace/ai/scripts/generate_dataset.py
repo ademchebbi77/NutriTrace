@@ -218,7 +218,7 @@ def main() -> None:
     rng = random.Random(args.seed)
 
     train, val = {"transport": transport, "distribution": distribution, "transformation": transformation, "impact": impact}[args.module](args, rng)
-    rng.shuffle(train)
+    rng.shuffle(train)  # NOSONAR: seeded generator for reproducible synthetic data, not security
 
     folder = MODULES[args.module]["dataset"]
     folder.mkdir(parents=True, exist_ok=True)

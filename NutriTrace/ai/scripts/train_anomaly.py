@@ -53,9 +53,9 @@ def main() -> None:
     print(f"Real transports exported from NutriTrace: {len(real)}" + ("" if real else " (run php artisan ai:export first for real data)"))
 
     normal = [t for t in real if t.get("distance_km") is not None] + synth.normal_transports(rng, args.normal)
-    samples = list(real) + normal + [borderline(rng, rng.choice(normal)) for _ in range(args.normal // 3)]
+    samples = list(real) + normal + [borderline(rng, rng.choice(normal)) for _ in range(args.normal // 3)]  # NOSONAR: seeded generator for reproducible synthetic data, not security
     for kind in LABELS[1:]:
-        samples += [synth.inject(rng, rng.choice(normal), kind) for _ in range(args.per_anomaly)]
+        samples += [synth.inject(rng, rng.choice(normal), kind) for _ in range(args.per_anomaly)]  # NOSONAR: seeded synthetic data
 
     X = np.array([vector(t) for t in samples])
     y = np.array([rule_label(t) for t in samples])

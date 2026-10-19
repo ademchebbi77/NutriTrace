@@ -442,19 +442,22 @@ def watch(process: subprocess.Popen) -> None:
 
 @app.post("/train", dependencies=[Depends(check_token)])
 def train(request: TrainRequest) -> dict[str, Any]:
-    if request.module not in MODULES:
-        raise HTTPException(status_code=422, detail=f"Unknown module {request.module}")
+    # Only a name taken from MODULES reaches the command line, never the string sent by the client.
+    module = next((name for name in MODULES if name == request.module), None)
+    if module is None:
+        raise HTTPException(status_code=422, detail="Unknown module")
     if training():
         raise HTTPException(status_code=409, detail="A training run is already in progress")
-    if request.resume and not checkpoint_of(request.module):
+    if request.resume and not checkpoint_of(module):
         raise HTTPException(status_code=409, detail="No checkpoint to resume from: start a new training run")
 
     # The GPU holds one 1.5B model: the LLM is unloaded while training, cached answers keep working.
     unload_llm()
-    status = train_status.start(request.module)
+    status = train_status.start(module)
     log_file = TRAIN_LOG_PATH.open("a" if request.resume else "w", encoding="utf-8")
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
-    command = [sys.executable, "-X", "utf8", str(ROOT / "scripts" / "train_module.py"), "--module", request.module, "--epochs", str(request.epochs)]
+    epochs = f"{float(request.epochs):g}"
+    command = [sys.executable, "-X", "utf8", str(ROOT / "scripts" / "train_module.py"), "--module", module, "--epochs", epochs]
     if NO_LLM:
         command.append("--skip-llm")
     state["process"] = subprocess.Popen(

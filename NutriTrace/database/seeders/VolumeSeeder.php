@@ -73,7 +73,8 @@ class VolumeSeeder extends Seeder
             return;
         }
 
-        // Same "random" choices on every run.
+        // Same "random" choices on every run: a seeded generator is wanted here (demo data,
+        // not security), which is why the mt_rand() calls below are marked NOSONAR.
         mt_srand(2026);
 
         $this->admin = User::where('role', UserRole::ADMIN)->firstOrFail();
@@ -254,7 +255,7 @@ class VolumeSeeder extends Seeder
 
             // Each harvest differs a little from the profile of its crop.
             $resources = array_map(
-                fn ($perUnit) => $perUnit === null ? null : round($perUnit * $quantity * (mt_rand(88, 112) / 100), 1),
+                fn ($perUnit) => $perUnit === null ? null : round($perUnit * $quantity * (mt_rand(88, 112) / 100), 1), // NOSONAR: seeded demo data (mt_srand above), not security
                 array_combine(['water_l', 'energy_kwh', 'fertilizer_kg', 'pesticide_kg'], $profiles[$name]),
             );
 
@@ -486,15 +487,15 @@ class VolumeSeeder extends Seeder
                 default => [3, 2, 4, 3],
             };
 
-            foreach ($consumers->sortBy(fn () => mt_rand())->take(mt_rand(2, 5)) as $consumer) {
+            foreach ($consumers->sortBy(fn () => mt_rand())->take(mt_rand(2, 5)) as $consumer) { // NOSONAR: seeded demo data
                 if (Review::where('user_id', $consumer->id)->where('product_id', $lot->product_id)->exists()) {
                     continue;
                 }
 
-                $rating = $ratings[mt_rand(0, count($ratings) - 1)];
-                $when = now()->subDays(mt_rand(2, 150))->setTime(mt_rand(9, 21), mt_rand(0, 59));
+                $rating = $ratings[mt_rand(0, count($ratings) - 1)]; // NOSONAR: seeded demo data
+                $when = now()->subDays(mt_rand(2, 150))->setTime(mt_rand(9, 21), mt_rand(0, 59)); // NOSONAR: seeded demo data
 
-                $review = new Review(['rating' => $rating, 'comment' => $comments[$rating][mt_rand(0, count($comments[$rating]) - 1)]]);
+                $review = new Review(['rating' => $rating, 'comment' => $comments[$rating][mt_rand(0, count($comments[$rating]) - 1)]]); // NOSONAR: seeded demo data
                 $review->user_id = $consumer->id;
                 $review->product_id = $lot->product_id;
                 $review->lot_id = $lot->id;
@@ -504,7 +505,7 @@ class VolumeSeeder extends Seeder
 
                 $consumer->viewedLots()->syncWithoutDetaching([$lot->id => ['viewed_at' => $when]]);
 
-                if ($rating === 5 && mt_rand(0, 1)) {
+                if ($rating === 5 && mt_rand(0, 1)) { // NOSONAR: seeded demo data
                     $consumer->favoriteProducts()->syncWithoutDetaching([$lot->product_id => ['created_at' => $when]]);
                 }
             }

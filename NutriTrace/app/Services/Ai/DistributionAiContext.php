@@ -162,7 +162,7 @@ class DistributionAiContext
     public function version(array $context): string
     {
         if (isset($context['document']['base64'])) {
-            $context['document']['base64'] = md5($context['document']['base64']);
+            $context['document']['base64'] = hash('sha256', $context['document']['base64']);
         }
 
         return $this->context->version($context);

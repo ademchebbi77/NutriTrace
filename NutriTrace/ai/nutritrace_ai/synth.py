@@ -127,7 +127,7 @@ def lot(rng: random.Random) -> dict[str, Any]:
 
     farm = b.actor(FARMS, rng.choice(regions))
     produced = datetime(b.year, rng.randint(1, 12), rng.randint(1, 28), 0, 0)
-    quantity = float(rng.randint(low, high)) if unit != "t" else float(rng.randint(low, high))
+    quantity = float(rng.randint(low, high))
     farm_lot = b.lot_number()
     method = rng.choice(METHODS)
     b.event("PRODUCTION", produced, f"Production de {fmt.quantity(quantity, unit)} de {name} (méthode {method}).",

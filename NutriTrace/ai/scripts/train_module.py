@@ -46,28 +46,32 @@ def main() -> None:
     parser.add_argument("--resume", action="store_true", help="continue the LLM fine-tuning from its last checkpoint (same dataset)")
     parser.add_argument("--eval-limit", type=int, default=60)
     args = parser.parse_args()
+    # Child processes only receive names taken from MODULES and numbers, never raw text.
+    module = next(name for name in MODULES if name == args.module)
+    epochs = f"{float(args.epochs):g}"
+    eval_limit = str(int(args.eval_limit))
 
-    train_status.start(args.module)
+    train_status.start(module)
     try:
         # A resumed run must see exactly the dataset of its checkpoint: no regeneration.
         if not args.resume:
             train_status.write(stage="dataset", message="Génération du jeu de données")
-            step("generate_dataset.py", "--module", args.module)
+            step("generate_dataset.py", "--module", module)
 
             train_status.write(stage="classifiers", message="Entraînement des modèles scikit-learn")
-            step(CLASSIFIERS[args.module])
+            step(CLASSIFIERS[module])
 
         if not args.skip_llm:
             import train_llm
 
             train_status.write(stage="llm", message="Reprise depuis le dernier point de sauvegarde" if args.resume else "Chargement du modèle de base")
-            llm_args = train_llm.build_parser().parse_args(["--module", args.module, "--epochs", str(args.epochs)] + (["--resume"] if args.resume else []))
+            llm_args = train_llm.build_parser().parse_args(["--module", module, "--epochs", epochs] + (["--resume"] if args.resume else []))
             info = train_llm.run(llm_args, callbacks=[train_status.trainer_callback()])
             train_status.write(eval_loss=info["eval_loss"], loss=info["train_loss"], minutes=info["minutes"])
 
             train_status.write(stage="evaluation", message="Évaluation sur des données jamais vues", step=0, total=0, eta_seconds=None)
-            step("evaluate_llm.py", "--module", args.module, "--limit", str(args.eval_limit), "--show", "0")
-            result = json.loads((MODELS_DIR / f"eval-{args.module}-finetuned.json").read_text(encoding="utf-8"))
+            step("evaluate_llm.py", "--module", module, "--limit", eval_limit, "--show", "0")
+            result = json.loads((MODELS_DIR / f"eval-{module}-finetuned.json").read_text(encoding="utf-8"))
             train_status.write(accuracy=round(result["accuracy"], 4))
 
         train_status.write(state="done", stage="done", message="Entraînement terminé", eta_seconds=0)
