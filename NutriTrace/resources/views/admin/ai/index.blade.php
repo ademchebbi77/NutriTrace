@@ -35,7 +35,7 @@
                             </dd>
                             <dt class="col-sm-5">{{ __('ai.admin.classifiers') }}</dt>
                             <dd class="col-sm-7 mb-0">
-                                @foreach (['anomaly' => 'anomaly', 'cert' => 'certification', 'reception' => 'reception', 'transformation' => 'transformation', 'shelf' => 'shelf_life'] as $name => $key)
+                                @foreach (['anomaly' => 'anomaly', 'cert' => 'certification', 'reception' => 'reception', 'transformation' => 'transformation', 'shelf' => 'shelf_life', 'impact_check' => 'impact_check', 'moderation' => 'moderation'] as $name => $key)
                                     <div><i class="fas fa-{{ ($health[$key] ?? false) ? 'check text-success' : 'times text-danger' }} fa-sm"></i>
                                         {{ __('ai.admin.classifier_names.'.$name) }}</div>
                                 @endforeach

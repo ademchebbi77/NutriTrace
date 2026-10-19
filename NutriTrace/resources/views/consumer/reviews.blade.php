@@ -39,7 +39,11 @@
                                         <span class="text-warning" aria-hidden="true">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}</span>
                                         <span class="sr-only">{{ __('reviews.stars', ['count' => $review->rating]) }}</span>
                                     </td>
-                                    <td>{{ $review->comment }}</td>
+                                    <td>{{ $review->comment }}
+                                        @unless ($review->isPublished())
+                                            <br><span class="badge badge-{{ $review->moderation_status === 'pending' ? 'warning' : 'secondary' }}">{{ __('ai.moderation.statuses.'.$review->moderation_status) }}</span>
+                                        @endunless
+                                    </td>
                                     <td>
                                         <button type="button" class="btn btn-danger btn-circle btn-sm" data-toggle="modal"
                                             data-target="#confirmDeleteModal" data-action="{{ route('reviews.destroy', $review) }}"

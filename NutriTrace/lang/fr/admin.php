@@ -75,6 +75,8 @@ return [
             'lot_withdrawn' => 'Envoi annulé',
             'ai_training_started' => 'Entraînement IA lancé',
             'ai_training_cancelled' => 'Entraînement IA annulé',
+            'review_approved' => 'Avis publié après modération',
+            'review_rejected' => 'Avis refusé par la modération',
             'certification_approved' => 'Certification validée',
             'certification_rejected' => 'Certification refusée',
             'report_under_review' => 'Signalement en cours d\'examen',

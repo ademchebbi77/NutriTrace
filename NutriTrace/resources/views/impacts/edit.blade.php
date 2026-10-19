@@ -96,6 +96,8 @@
                     @endif
                 </div>
             </div>
+
+            @include('ai.partials.impact-advice')
         </div>
 
         <div class="col-lg-5">
@@ -134,6 +136,7 @@
                                 </div>
                             </div>
                         @endforeach
+                        @include('ai.partials.impact-form-check')
                         <button type="submit" class="btn btn-primary btn-block">
                             <i class="fas fa-save fa-sm mr-1"></i> {{ __('ui.save') }}
                         </button>

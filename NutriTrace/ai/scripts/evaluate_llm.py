@@ -40,7 +40,14 @@ VERDICTS[("transformation", "normal")] = r"cohérente|plausibles|ne présente pa
 for _label in ("yield_too_high", "sources_expired", "yield_too_low", "energy_too_low", "water_too_low",
                "energy_too_high", "water_too_high", "resources_missing"):
     VERDICTS[("transformation", _label)] = r"anormal|vérifiez|suspect|anomalie"
-SCORED_TASKS = {"chat", "stock", "reception", "certificate", "transformation"}
+# Impact: a declaration is stated plausible or to check, a review compliant or to moderate.
+VERDICTS[("impact_check", "ok")] = r"cohérente|plausibles"
+for _label in ("impossible", "under_declared", "too_high", "too_low"):
+    VERDICTS[("impact_check", _label)] = r"anormale|vérifiez"
+VERDICTS[("moderation", "ok")] = r"conforme|ne pose pas de problème"
+for _label in ("insult", "spam", "off_topic", "personal_data"):
+    VERDICTS[("moderation", _label)] = r"modération|ne peut pas être publié|refuser"
+SCORED_TASKS = {"chat", "stock", "reception", "certificate", "transformation", "impact_check", "advice", "moderation"}
 
 
 def normalize(text: str) -> str:

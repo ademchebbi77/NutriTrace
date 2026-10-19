@@ -8,6 +8,7 @@ use App\Models\Lot;
 use App\Models\Product;
 use App\Models\Report;
 use App\Models\Review;
+use App\Services\Ai\ReviewModerator;
 use App\Services\ReportService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +26,7 @@ class FeedbackController extends Controller
     /**
      * One review per user per product: posting again updates the existing one.
      */
-    public function review(Request $request, string $token): RedirectResponse
+    public function review(Request $request, string $token, ReviewModerator $moderator): RedirectResponse
     {
         Gate::authorize('create', Review::class);
 
@@ -41,9 +42,14 @@ class FeedbackController extends Controller
         $review->user_id = $request->user()->id;
         $review->product_id = $lot->product_id;
         $review->lot_id = $lot->id;
+        // The local AI holds insulting, advertising, off-topic or personal-data reviews for the admin.
+        $moderator->moderate($review);
         $review->save();
 
-        return redirect()->to(route('trace.show', $token).'#avis')->with('success', __('reviews.saved'));
+        return redirect()->to(route('trace.show', $token).'#avis')->with(
+            $review->isPublished() ? 'success' : 'warning',
+            $review->isPublished() ? __('reviews.saved') : __('ai.moderation.held'),
+        );
     }
 
     public function destroyReview(Review $review): RedirectResponse

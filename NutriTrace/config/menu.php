@@ -22,6 +22,7 @@ return [
         ['heading' => 'menu.headings.moderation', 'items' => [
             ['label' => 'menu.certifications_review', 'icon' => 'fa-certificate', 'route' => 'admin.certifications.index'],
             ['label' => 'menu.reports', 'icon' => 'fa-flag', 'route' => 'admin.reports.index'],
+            ['label' => 'menu.reviews_moderation', 'icon' => 'fa-comment-slash', 'route' => 'admin.reviews.moderation'],
         ]],
         ['heading' => 'menu.headings.catalog', 'items' => [
             ['label' => 'menu.categories', 'icon' => 'fa-tags', 'route' => 'admin.categories.index'],

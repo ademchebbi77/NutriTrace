@@ -6,11 +6,13 @@ use App\Enums\UserRole;
 use App\Models\Certification;
 use App\Models\Distribution;
 use App\Models\Lot;
+use App\Models\Review;
 use App\Models\Transformation;
 use App\Models\Transport;
 use App\Models\User;
 use App\Services\Ai\AiContext;
 use App\Services\Ai\DistributionAiContext;
+use App\Services\Ai\ImpactAiContext;
 use App\Services\Ai\TransformationAiContext;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -21,7 +23,7 @@ use Illuminate\Support\Facades\File;
 #[Description('Export the data of NutriTrace in the format of the local AI service, to generate its training data')]
 class ExportAiData extends Command
 {
-    public function handle(AiContext $context, DistributionAiContext $distribution, TransformationAiContext $transformation): int
+    public function handle(AiContext $context, DistributionAiContext $distribution, TransformationAiContext $transformation, ImpactAiContext $impact): int
     {
         $folder = $this->option('output') ?: config('ai.export_path');
         File::ensureDirectoryExists($folder);
@@ -48,6 +50,14 @@ class ExportAiData extends Command
                 ->map(fn (Transformation $item) => $transformation->fromTransformation($item)),
             'lots_expiry.json' => Lot::with('product.category')->orderBy('id')->get()
                 ->map(fn (Lot $lot) => $transformation->forLotExpiry($lot)),
+            // Impact environnemental - Avis et signalements
+            'declarations.json' => Lot::with(['product.category', 'environmentalImpact'])->whereHas('environmentalImpact', fn ($q) => $q->whereNotNull('declared'))
+                ->orderBy('id')->get()
+                ->map(fn (Lot $lot) => $impact->forDeclaration($lot, $lot->environmentalImpact->declared)),
+            'advice.json' => Lot::with(['product.category', 'environmentalImpact', 'transports'])->has('environmentalImpact')->orderBy('id')->get()
+                ->map(fn (Lot $lot) => $impact->forAdvice($lot)),
+            'reviews.json' => Review::with('product')->whereNotNull('comment')->orderBy('id')->get()
+                ->map(fn (Review $review) => $impact->forReview($review)),
         ];
 
         $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;

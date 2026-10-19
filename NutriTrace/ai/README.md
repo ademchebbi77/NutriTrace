@@ -12,8 +12,11 @@ IA de NutriTrace pour les modules **Transport - Traçabilité** et **Distributio
 | Transformation - Lots | **Contrôle d'une transformation** avant l'enregistrement : quantité produite plausible pour les lots utilisés (rendements de référence par type de transformation), énergie et eau réalistes, lots sources périmés | Forêt aléatoire + explication du LLM (**adaptateur « transformation »**) | Bouton « Vérifier avec l'IA » du formulaire ; confirmation demandée si une anomalie est détectée |
 | Transformation - Lots | **Revue des transformations** par l'administrateur | Même modèle, score de risque + explication | Colonne « Contrôle IA » de la liste, carte sur chaque transformation |
 | Transformation - Lots | **Dates limites des lots** : durée de conservation attendue pour le produit, date suggérée | Régression (gradient boosting) | Colonne « Date limite (IA) » de la liste des lots (administrateur) |
+| Impact environnemental - Avis et signalements | **Contrôle des valeurs déclarées** (CO₂, eau, énergie, déchets, emballage) : moins que ce que les données tracées montrent déjà (écoblanchiment), très en dessous ou au-dessus de l'habituel, impossible | Forêt aléatoire (une décision par valeur) + explication du LLM (**adaptateur « impact »**) | Bouton « Vérifier avec l'IA » de la page « Données environnementales » d'un lot ; confirmation demandée si une anomalie est détectée |
+| Impact environnemental - Avis et signalements | **Conseils pour améliorer la note** : leviers chiffrés avec les règles de score de NutriTrace (valeur à atteindre pour la note suivante, poste qui pèse le plus, mode de transport) | Calcul exact du score + texte du LLM | Carte « Conseils IA » de la même page |
+| Impact environnemental - Avis et signalements | **Modération des avis** : injures, publicité, hors sujet, données personnelles. Un avis retenu n'est publié qu'après validation | TF-IDF + régression logistique, règles (e-mails, téléphones, liens, injures) + explication du LLM | Page « Modération des avis » de l'administrateur ; le consommateur voit que son avis est en attente |
 
-Le modèle de base n'est chargé **qu'une fois** sur la carte graphique ; chaque module a son propre adaptateur LoRA (quelques dizaines de Mo), choisi à chaque question. Les trois tiennent ainsi dans 6 Go.
+Le modèle de base n'est chargé **qu'une fois** sur la carte graphique ; chaque module a son propre adaptateur LoRA (quelques dizaines de Mo), choisi à chaque question. Les quatre tiennent ainsi dans 6 Go.
 
 Le LLM ne répond jamais « de mémoire » : chaque question lui est envoyée **avec les données réelles** (le lot, ou le stock et les ventes du distributeur), totaux et classements déjà calculés. Il a été entraîné à répondre uniquement à partir de ces données et à le dire quand l'information n'y figure pas.
 
@@ -84,6 +87,7 @@ python scripts/train_module.py --module distribution       # tout le module, com
 python scripts/generate_dataset.py --module distribution   # (transport par défaut)
 python scripts/train_distribution_models.py                # risque des certificats + contrôle de réception
 python scripts/train_transformation_models.py              # contrôle des transformations + durée de conservation
+python scripts/train_impact_models.py                      # contrôle des déclarations + modération des avis
 python scripts/train_anomaly.py                            # anomalies de transport
 python scripts/train_llm.py --module distribution          # adaptateur LoRA (--resume pour reprendre)
 python scripts/evaluate_llm.py --module distribution       # --base pour comparer avec le modèle non affiné
@@ -111,13 +115,17 @@ Chaque modèle est une forêt aléatoire entraînée sur des exemples étiqueté
 - **Contrôle des transformations** (`transformations.py`, 18 variables) : rendement (masse produite / masse utilisée) comparé au profil de référence du type de transformation (huile d'olive 14-23 %, fromage 9-15 %, semoule 65-78 %, concentré de tomates 13-21 %…, calibrés sur les données de démonstration), énergie et eau par kg comparées au profil, âge et péremption des lots sources. Les profils inconnus n'appliquent que des limites physiques larges.
 - **Durée de conservation** (`shelf_life.py`, régression par gradient boosting sur le logarithme des jours) : catégorie, mots-clés du produit (fromage, huile, miel, dattes…), unité, produit transformé ou non. La date saisie est jugée trop lointaine au-delà de 2,5 fois la durée attendue, trop proche en dessous de 0,35 fois.
 
+- **Contrôle des déclarations** (`impact_check.py`, une ligne par valeur déclarée) : valeur par kg comparée aux valeurs habituelles de la catégorie et à ce que NutriTrace calcule déjà à partir des données tracées (production, transformation, transports) ; déclarer moins que cela est le signal d'écoblanchiment le plus net.
+- **Modération des avis** (`moderation.py`) : TF-IDF sur les mots et les fragments de mots, puis régression logistique ; des règles explicites détectent e-mails, numéros de téléphone, liens et injures. Une critique polie (« décevant, trop cher ») reste un avis normal : seule la forme est modérée. Le modèle est aussi mesuré sur des phrases écrites à la main, indépendantes du générateur, et sur les 62 avis réels (aucun ne doit être retenu).
+- **Conseils** (`advisor.py`) : pas d'apprentissage, le score est recalculé exactement comme `FootprintCalculator::score()` (vérifié sur les 57 lots réels) pour chiffrer chaque levier ; le LLM rédige.
+
 Les scripts d'entraînement affichent précision, rappel et matrice de confusion sur un jeu de test jamais vu, et la justesse sur les cas réels de NutriTrace ; la page « IA locale » les reprend.
 
 ## 6. Tests
 
 ```bash
 python -m pytest tests                          # Python : règles, jeux de données, API (faux LLM)
-php artisan test --filter="TransportAi|DistributionAi|TransformationAi"   # Laravel : assistants, contrôles, cache, page d'administration
+php artisan test --filter="TransportAi|DistributionAi|TransformationAi|ImpactAi"   # Laravel : assistants, contrôles, cache, page d'administration
 ```
 
 ## Fichiers

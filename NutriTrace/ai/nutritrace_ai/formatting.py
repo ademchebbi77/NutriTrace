@@ -13,6 +13,15 @@ def number(value: float | None, decimals: int = 0) -> str:
     return text
 
 
+def smart(value: float | None) -> str:
+    """As many decimals as the size of the number needs, no trailing zeros: 2 -> '2', 0.057 -> '0,057', 116.9 -> '117'."""
+    if value is None:
+        return "?"
+    decimals = 0 if abs(value) >= 100 else 1 if abs(value) >= 10 else 2 if abs(value) >= 1 else 3
+    text = number(value, decimals)
+    return text.rstrip("0").rstrip(",") if "," in text else text
+
+
 def km(value: float | None) -> str:
     if value is None:
         return "distance inconnue"

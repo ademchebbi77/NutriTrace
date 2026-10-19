@@ -25,7 +25,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from nutritrace_ai import certificates, qa, reception, stock_qa, synth, transformations  # noqa: E402
+from nutritrace_ai import advisor, certificates, impact_check, moderation, qa, reception, stock_qa, synth, transformations  # noqa: E402
+from nutritrace_ai import synth_impact as isynth  # noqa: E402
 from nutritrace_ai import synth_distribution as dsynth  # noqa: E402
 from nutritrace_ai import synth_transformation as tsynth  # noqa: E402
 from nutritrace_ai.config import EXPORT_DIR, MODULES  # noqa: E402
@@ -33,7 +34,7 @@ from nutritrace_ai.explain import explain  # noqa: E402
 from nutritrace_ai.features import LABELS, report, rule_label  # noqa: E402
 from nutritrace_ai.pdf_text import extract  # noqa: E402
 from nutritrace_ai.prompts import (certificate_messages, chat_messages, explain_messages, reception_messages,  # noqa: E402
-                                   stock_messages, transformation_messages)
+                                   impact_messages, stock_messages, transformation_messages)
 
 
 def load(name: str) -> list[dict]:
@@ -154,6 +155,50 @@ def transformation(args, rng) -> tuple[list[dict], list[dict]]:
     return split(transformation_rows(payloads, rng, "mixed"), args.val_share, rng)
 
 
+# --- impact environnemental - avis et signalements ------------------------------------------
+
+def impact(args, rng) -> tuple[list[dict], list[dict]]:
+    declarations, cases, reviews = load("declarations.json"), load("advice.json"), load("reviews.json")
+    print(f"Real data exported from NutriTrace: {len(declarations)} declarations, {len(cases)} lots, {len(reviews)} reviews"
+          + ("" if cases else " (run php artisan ai:export first)"))
+    rows = []
+
+    for d in declarations * 3 + [isynth.declaration(rng) for _ in range(args.explain)]:
+        results = [(row, impact_check.rule_label(row)) for row in impact_check.rows(d)]
+        if not results:
+            continue
+        label = impact_check.overall([l for _, l in results])
+        first = [impact_check.reason(r, l) for r, l in results if l != "ok"][:1]
+        rows.append({"task": "impact_check", "intent": label, "source": "mixed", "checks": [r[:40] for r in first],
+                     "messages": impact_messages(impact_check.report(d, results, label, rng.uniform(0.75, 1.0)), "check")
+                     + [{"role": "assistant", "content": impact_check.explain(results, label, rng)}]})
+
+    for case in cases * 2 + [isynth.advice_case(rng) for _ in range(args.explain)]:
+        result = advisor.analyse(case)
+        tips = advisor.advice(case)
+        rows.append({"task": "advice", "intent": "advice" if result["score"] is not None else "no_data", "source": "mixed",
+                     "checks": [tips[0][:40]] if tips else [],
+                     "messages": impact_messages(advisor.report(case), "advice") + [{"role": "assistant", "content": advisor.explain(case, rng)}]})
+
+    for review in reviews + [isynth.review(rng) for _ in range(args.explain)]:
+        result = moderation.judge(None, review) if review.get("kind") is None else _labelled(review)
+        rows.append({"task": "moderation", "intent": result["label"], "source": "mixed", "checks": [result["reasons"][0][:40]],
+                     "messages": impact_messages(moderation.report(review, result), "moderation")
+                     + [{"role": "assistant", "content": moderation.explain(review, result, rng)}]})
+
+    return split(rows, args.val_share, rng)
+
+
+def _labelled(review: dict) -> dict:
+    """Synthetic reviews carry their true label: the explanation is trained on it, not on a model's guess."""
+    found = moderation.rule_findings(review["comment"])
+    label = review["kind"]
+    reasons = [r for l, r in found if l == label] or (
+        [f"Le modèle reconnaît un texte de type « {moderation.LABEL_TEXT[label]} »."] if label != "ok"
+        else ["Avis conforme : il porte sur le produit, sans propos injurieux ni données personnelles."])
+    return {"label": label, "confidence": 0.95, "flagged": label != "ok", "reasons": reasons}
+
+
 def write(path: Path, rows: list[dict]) -> None:
     with path.open("w", encoding="utf-8") as handle:
         for row in rows:
@@ -172,7 +217,7 @@ def main() -> None:
     args = parser.parse_args()
     rng = random.Random(args.seed)
 
-    train, val = {"transport": transport, "distribution": distribution, "transformation": transformation}[args.module](args, rng)
+    train, val = {"transport": transport, "distribution": distribution, "transformation": transformation, "impact": impact}[args.module](args, rng)
     rng.shuffle(train)
 
     folder = MODULES[args.module]["dataset"]

@@ -15,6 +15,8 @@ CERT_RISK_MODEL_PATH = MODELS_DIR / "cert-risk.joblib"
 RECEPTION_MODEL_PATH = MODELS_DIR / "reception.joblib"
 TRANSFORMATION_MODEL_PATH = MODELS_DIR / "transformation.joblib"
 SHELF_LIFE_MODEL_PATH = MODELS_DIR / "shelf-life.joblib"
+IMPACT_CHECK_MODEL_PATH = MODELS_DIR / "impact-check.joblib"
+MODERATION_MODEL_PATH = MODELS_DIR / "moderation.joblib"
 
 # Live state of a training run, written by scripts/train_module.py and read by the service.
 TRAIN_STATUS_PATH = MODELS_DIR / "train-status.json"
@@ -36,6 +38,11 @@ MODULES = {
         "label": "Transformation - Lots",
         "dataset": DATA_DIR / "dataset-transformation",
         "adapter": MODELS_DIR / "adapters" / "transformation",
+    },
+    "impact": {
+        "label": "Impact environnemental - Avis et signalements",
+        "dataset": DATA_DIR / "dataset-impact",
+        "adapter": MODELS_DIR / "adapters" / "impact",
     },
 }
 

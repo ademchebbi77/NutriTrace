@@ -34,27 +34,31 @@ from typing import Any
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from nutritrace_ai import certificates, reception, train_status, transformations
+from nutritrace_ai import advisor, certificates, impact_check, moderation, reception, train_status, transformations
 from nutritrace_ai.anomaly import AnomalyDetector
 from nutritrace_ai.config import (ANOMALY_MODEL_PATH, CERT_RISK_MODEL_PATH, MODELS_DIR, MODULES, NO_LLM, RECEPTION_MODEL_PATH, ROOT,
-                                  SERVICE_TOKEN, SHELF_LIFE_MODEL_PATH, TRAIN_LOG_PATH, TRANSFORMATION_MODEL_PATH)
+                                  SERVICE_TOKEN, SHELF_LIFE_MODEL_PATH, TRAIN_LOG_PATH, TRANSFORMATION_MODEL_PATH,
+                                  IMPACT_CHECK_MODEL_PATH, MODERATION_MODEL_PATH)
 from nutritrace_ai.distribution_models import CertificateRiskModel, ReceptionModel
 from nutritrace_ai.explain import explain
 from nutritrace_ai.features import report
 from nutritrace_ai.pdf_text import extract
-from nutritrace_ai.prompts import (certificate_messages, chat_messages, explain_messages, reception_messages, stock_messages,
-                                   transformation_messages)
+from nutritrace_ai.prompts import (certificate_messages, chat_messages, explain_messages, impact_messages, reception_messages,
+                                   stock_messages, transformation_messages)
 from nutritrace_ai.transformation_models import ShelfLifeModel, TransformationModel
+from nutritrace_ai.impact_models import ImpactCheckModel, ModerationModel
 
 log = logging.getLogger("nutritrace_ai")
 state: dict[str, Any] = {"llm": None, "anomaly": None, "cert": None, "reception": None, "transformation": None, "shelf": None,
-                         "errors": [], "process": None}
+                         "impact_check": None, "moderation": None, "errors": [], "process": None}
 CLASSIFIERS = {
     "anomaly": (AnomalyDetector, ANOMALY_MODEL_PATH),
     "cert": (CertificateRiskModel, CERT_RISK_MODEL_PATH),
     "reception": (ReceptionModel, RECEPTION_MODEL_PATH),
     "transformation": (TransformationModel, TRANSFORMATION_MODEL_PATH),
     "shelf": (ShelfLifeModel, SHELF_LIFE_MODEL_PATH),
+    "impact_check": (ImpactCheckModel, IMPACT_CHECK_MODEL_PATH),
+    "moderation": (ModerationModel, MODERATION_MODEL_PATH),
 }
 
 
@@ -137,6 +141,8 @@ async def health() -> dict[str, Any]:
         "reception": state["reception"] is not None,
         "transformation": state["transformation"] is not None,
         "shelf_life": state["shelf"] is not None,
+        "impact_check": state["impact_check"] is not None,
+        "moderation": state["moderation"] is not None,
         "adapters": llm.adapters if llm else [],
         "model": llm.name if llm else None,
         "fine_tuned": bool(llm and llm.fine_tuned),
@@ -315,6 +321,68 @@ def lots_expiry(request: LotsRequest) -> dict[str, Any]:
         return {"results": [model.predict(lot) for lot in request.lots], "model": "gradient-boosting"}
     except (KeyError, TypeError, ValueError) as error:
         raise HTTPException(status_code=422, detail=f"Invalid lot: {error}") from error
+
+
+# --- impact environnemental - avis et signalements ------------------------------------------
+
+class DeclarationRequest(BaseModel):
+    declaration: dict[str, Any]
+    explain: bool = False
+
+
+class AdviceRequest(BaseModel):
+    lot: dict[str, Any]
+
+
+class ReviewRequest(BaseModel):
+    review: dict[str, Any]
+    explain: bool = False
+
+
+def explained(module_text: str, task: str, fallback: str) -> tuple[str, str]:
+    """LLM text (impact adapter) or the reference text when the LLM is not loaded."""
+    llm = state["llm"]
+    if llm is None:
+        return fallback, ""
+    return llm.generate(impact_messages(module_text, task), module="impact"), f" + {llm.model_name('impact')}"
+
+
+@app.post("/impact/check", dependencies=[Depends(check_token)])
+def check_impact(request: DeclarationRequest) -> dict[str, Any]:
+    model = need("impact_check")
+    try:
+        result = model.predict(request.declaration)
+    except (KeyError, TypeError, ValueError, ZeroDivisionError) as error:
+        raise HTTPException(status_code=422, detail=f"Invalid declaration: {error}") from error
+    results = result.pop("_results", [])
+    result["explanation"], suffix = None, ""
+    if request.explain and results:
+        text = impact_check.report(request.declaration, results, result["label"], result["confidence"])
+        result["explanation"], suffix = explained(text, "check", impact_check.explain(results, result["label"]))
+    result["model"] = "random-forest" + suffix
+    return result
+
+
+@app.post("/impact/advice", dependencies=[Depends(check_token)])
+def impact_advice(request: AdviceRequest) -> dict[str, Any]:
+    try:
+        analysis = advisor.analyse(request.lot)
+        levers = advisor.advice(request.lot)
+    except (KeyError, TypeError, ValueError, ZeroDivisionError) as error:
+        raise HTTPException(status_code=422, detail=f"Invalid lot: {error}") from error
+    explanation, suffix = explained(advisor.report(request.lot), "advice", advisor.explain(request.lot))
+    return {"score": analysis["score"], "grade": analysis["grade"], "target": analysis["target"], "levers": levers,
+            "shares": analysis["shares"], "explanation": explanation, "model": "règles de score" + suffix}
+
+
+@app.post("/reviews/moderate", dependencies=[Depends(check_token)])
+def moderate(request: ReviewRequest) -> dict[str, Any]:
+    result = need("moderation").predict(request.review)
+    result["explanation"], suffix = None, ""
+    if request.explain:
+        result["explanation"], suffix = explained(moderation.report(request.review, result), "moderation", moderation.explain(request.review, result))
+    result["model"] = "tf-idf + régression logistique" + suffix
+    return result
 
 
 # --- training -------------------------------------------------------------------------------

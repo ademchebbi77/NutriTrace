@@ -155,6 +155,33 @@ class AiClient
     }
 
     /**
+     * @param  array<string, mixed>  $declaration  See ImpactAiContext::forDeclaration().
+     * @return ?array{is_anomaly: bool, label: string, confidence: float, findings: list<array<string, mixed>>, reasons: list<string>, explanation: ?string, model: string}
+     */
+    public function checkImpact(array $declaration, bool $explain): ?array
+    {
+        return $this->post('/impact/check', ['declaration' => $declaration, 'explain' => $explain]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $lot  See ImpactAiContext::forAdvice().
+     * @return ?array{score: ?int, grade: ?string, target: ?string, levers: list<string>, explanation: string, model: string}
+     */
+    public function impactAdvice(array $lot): ?array
+    {
+        return $this->post('/impact/advice', ['lot' => $lot]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $review  See ImpactAiContext::forReview().
+     * @return ?array{label: string, confidence: float, flagged: bool, reasons: list<string>, explanation: ?string, model: string}
+     */
+    public function moderateReview(array $review, bool $explain = false): ?array
+    {
+        return $this->post('/reviews/moderate', ['review' => $review, 'explain' => $explain]);
+    }
+
+    /**
      * Administration of the service (admin page): returns [ok, body]. Unlike the other
      * calls it reports why a request was refused (a run already in progress...).
      *
@@ -189,7 +216,10 @@ class AiClient
 
         // PHP's own limit (30 s by default with `php artisan serve`) would kill the request
         // before the HTTP timeout: a slow generation must end with "no answer", not a fatal error.
-        set_time_limit(config('ai.timeout') + 15);
+        // Web requests only: in a console process (commands, tests) it would limit the whole run.
+        if (! app()->runningInConsole()) {
+            set_time_limit(config('ai.timeout') + 15);
+        }
 
         try {
             return $this->request(config('ai.timeout'))->post($path, $payload)->throw()->json();

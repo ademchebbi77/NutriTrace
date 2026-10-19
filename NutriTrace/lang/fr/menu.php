@@ -31,6 +31,7 @@ return [
     'settings' => 'Paramètres de calcul',
     'audit_log' => 'Journal d\'audit',
     'local_ai' => 'IA locale',
+    'reviews_moderation' => 'Modération des avis',
     'ai_assistant' => 'Assistant IA',
     'certifications' => 'Certifications',
     'environmental_data' => 'Données environnementales',

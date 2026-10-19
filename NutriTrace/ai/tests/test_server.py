@@ -13,6 +13,9 @@ from nutritrace_ai.distribution_models import CertificateRiskModel, ReceptionMod
 from nutritrace_ai import shelf_life, transformations
 from nutritrace_ai import synth_transformation as tsynth
 from nutritrace_ai.transformation_models import ShelfLifeModel, TransformationModel, build_regressor
+from nutritrace_ai import impact_check, moderation
+from nutritrace_ai import synth_impact as isynth
+from nutritrace_ai.impact_models import ImpactCheckModel, ModerationModel
 from nutritrace_ai.features import LABELS, rule_label, vector
 from nutritrace_ai.tabular import build_model
 
@@ -57,6 +60,7 @@ def tiny(cls, samples, vector_fn, label_fn):
 def models():
     rng = random.Random(0)
     lots = [tsynth.lot(rng) for _ in range(600)]
+    reviews = [isynth.review(rng) for _ in range(800)]
     normal = synth.normal_transports(rng, 200)
     transports = normal + [synth.inject(rng, rng.choice(normal), kind) for kind in LABELS[1:] for _ in range(40)]
     return {
@@ -65,6 +69,8 @@ def models():
         "reception": tiny(ReceptionModel, [dsynth.reception(rng) for _ in range(800)], reception.vector, reception.rule_decision),
         "transformation": tiny(TransformationModel, [tsynth.transformation(rng) for _ in range(800)], transformations.vector, transformations.rule_label),
         "shelf": ShelfLifeModel(build_regressor().fit([shelf_life.vector(l) for l in lots], [math.log(l["true_days"]) for l in lots])),
+        "impact_check": tiny(ImpactCheckModel, [r for _ in range(600) for r in impact_check.rows(isynth.declaration(rng))], impact_check.vector, impact_check.rule_label),
+        "moderation": ModerationModel(moderation.build().fit([r["comment"] for r in reviews], [r["kind"] for r in reviews])),
     }
 
 
@@ -167,8 +173,8 @@ def test_training_status_and_refusals(client, monkeypatch):
     assert client.post("/train", json={"module": "distribution", "resume": True}).status_code == 409
     assert client.post("/train/cancel").status_code == 409
     models = client.get("/models").json()
-    assert set(models["classifiers"]) == {"anomaly", "cert", "reception", "transformation", "shelf"}
-    assert {a["module"] for a in models["adapters"]} == {"transport", "distribution", "transformation"}
+    assert set(models["classifiers"]) == {"anomaly", "cert", "reception", "transformation", "shelf", "impact_check", "moderation"}
+    assert {a["module"] for a in models["adapters"]} == {"transport", "distribution", "transformation", "impact"}
 
 
 def test_transformation_check_for_the_transformer_and_the_admin(client):
@@ -190,3 +196,20 @@ def test_lots_expiry_batch(client):
     results = client.post("/lots/expiry/batch", json={"lots": lots}).json()["results"]
     assert [r["label"] for r in results] == ["too_long", "missing"]
     assert results[1]["suggested_date"] > "2026-12-01"
+
+
+def test_impact_check_advice_and_moderation(client):
+    declaration = {"id": 1, "lot": "LOT-2026-001", "product": "Huile d'olive", "category": "Huiles et olives", "mass_kg": 1000.0,
+                   "calculated": {"co2_kg": 300.0}, "declared": {"co2_kg": {"value": 40, "source": "MEASURED"}}}
+    body = client.post("/impact/check", json={"declaration": declaration, "explain": True}).json()
+    assert body["label"] == "under_declared" and body["findings"][0]["indicator"] == "co2_kg"
+    assert body["explanation"] == "Réponse du modèle." and client.llm.prompts[-1][0] == "impact"
+    assert "_results" not in body
+
+    advice = client.post("/impact/advice", json={"lot": isynth.advice_case(random.Random(3))}).json()
+    assert advice["levers"] and advice["explanation"] == "Réponse du modèle."
+
+    held = client.post("/reviews/moderate", json={"review": {"comment": "Écrivez-moi à moi@exemple.com", "rating": 4}}).json()
+    assert held["flagged"] and held["label"] == "personal_data" and held["explanation"] is None
+    fine = client.post("/reviews/moderate", json={"review": {"comment": "Bon produit mais trop cher.", "rating": 3}, "explain": True}).json()
+    assert fine["flagged"] is False and fine["explanation"] == "Réponse du modèle."

@@ -13,8 +13,10 @@
 use App\Enums\UserRole;
 use App\Http\Controllers\Admin\AiController;
 use App\Http\Controllers\Admin\CertificationAiController;
+use App\Http\Controllers\Admin\ReviewModerationController;
 use App\Http\Controllers\DistributionAiController;
 use App\Http\Controllers\Distributor\AssistantController;
+use App\Http\Controllers\ImpactAiController;
 use App\Http\Controllers\TransformationAiController;
 use App\Http\Controllers\TransportAiController;
 use Illuminate\Support\Facades\Route;
@@ -41,7 +43,20 @@ Route::prefix('transformateur')->name('transformateur.')->middleware(['role:TRAN
     Route::post('transformations/verifier', [TransformationAiController::class, 'check'])->name('transformations.check');
 });
 
+// Impact environnemental - Avis et signalements
+foreach ([UserRole::PRODUCTEUR, UserRole::TRANSFORMATEUR] as $role) {
+    Route::prefix($role->prefix())->name($role->prefix().'.')->middleware(['role:'.$role->value, 'throttle:10,1'])->group(function () {
+        Route::post('impacts/{lot}/verifier', [ImpactAiController::class, 'check'])->name('impacts.check');
+        Route::post('impacts/{lot}/conseils', [ImpactAiController::class, 'advise'])->name('impacts.advise');
+    });
+}
+
 Route::prefix('admin')->name('admin.')->middleware('role:ADMIN')->group(function () {
+    Route::get('moderation-avis', [ReviewModerationController::class, 'index'])->name('reviews.moderation');
+    Route::post('moderation-avis/{review}/publier', [ReviewModerationController::class, 'approve'])->name('reviews.approve');
+    Route::post('moderation-avis/{review}/refuser', [ReviewModerationController::class, 'reject'])->name('reviews.reject');
+    Route::post('moderation-avis/{review}/expliquer', [ReviewModerationController::class, 'explain'])->middleware('throttle:10,1')->name('reviews.explain');
+
     Route::post('certifications/{certification}/expliquer', [CertificationAiController::class, 'explain'])
         ->middleware('throttle:10,1')
         ->name('certifications.explain');

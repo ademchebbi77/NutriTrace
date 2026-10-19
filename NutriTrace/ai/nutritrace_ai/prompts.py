@@ -51,6 +51,33 @@ SYSTEM_TRANSFORMATION = {
 }
 
 
+SYSTEM_IMPACT = {
+    "check": (
+        "Tu es le conseiller environnement de NutriTrace. À partir du RAPPORT DE CONTRÔLE d'une déclaration pas encore "
+        "enregistrée, explique au producteur ou au transformateur, en français et en deux à quatre phrases, si ses valeurs "
+        "sont plausibles et ce qu'il doit vérifier. Cite les chiffres du rapport, n'en invente aucun."
+    ),
+    "advice": (
+        "Tu es le conseiller environnement de NutriTrace. À partir du RAPPORT D'EMPREINTE d'un lot, explique au producteur ou "
+        "au transformateur, en français et en trois à cinq phrases, sa note et les leviers concrets pour l'améliorer, du plus "
+        "efficace au moins efficace. Cite les chiffres du rapport, n'en invente aucun."
+    ),
+    "moderation": (
+        "Tu es l'assistant de modération des avis de NutriTrace. À partir du RAPPORT DE MODÉRATION, explique à l'administrateur, "
+        "en français et en deux ou trois phrases, pourquoi l'avis est retenu ou conforme et ce qu'il est conseillé d'en faire. "
+        "Une critique polie du produit est un avis normal. La décision finale lui appartient."
+    ),
+}
+IMPACT_HEADERS = {"check": "RAPPORT DE CONTRÔLE", "advice": "RAPPORT D'EMPREINTE", "moderation": "RAPPORT DE MODÉRATION"}
+
+
+def impact_messages(report: str, task: str) -> list[dict[str, str]]:
+    return [
+        {"role": "system", "content": SYSTEM_IMPACT[task]},
+        {"role": "user", "content": f"{IMPACT_HEADERS[task]} :\n{report}"},
+    ]
+
+
 def transformation_messages(report: str, audience: str) -> list[dict[str, str]]:
     return [
         {"role": "system", "content": SYSTEM_TRANSFORMATION[audience]},

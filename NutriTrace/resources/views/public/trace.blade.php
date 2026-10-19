@@ -422,6 +422,9 @@
                     <div class="card">
                         <div class="card-body">
                             <h3 class="h5 fw-bolder">{{ $ownReview ? __('reviews.form_title_edit') : __('reviews.form_title') }}</h3>
+                            @if ($ownReview && ! $ownReview->isPublished())
+                                <div class="alert alert-warning small py-2" role="status">{{ __('ai.moderation.own_'.$ownReview->moderation_status) }}</div>
+                            @endif
                             @if ($canReview)
                                 <form method="POST" action="{{ route('trace.review', $lot->public_token) }}" novalidate>
                                     @csrf

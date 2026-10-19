@@ -118,9 +118,12 @@ class Lot extends Model
         return $this->morphMany(Certification::class, 'certifiable');
     }
 
+    /**
+     * Published reviews only: a review held by the moderation is not shown.
+     */
     public function reviews(): HasMany
     {
-        return $this->hasMany(Review::class);
+        return $this->hasMany(Review::class)->where('moderation_status', Review::PUBLISHED);
     }
 
     public function reports(): MorphMany
