@@ -37,7 +37,8 @@ jobs:
         with:
           php-version: '8.4'
           extensions: mbstring, pdo_sqlite, sqlite3, intl, bcmath, gd, fileinfo
-          coverage: none
+          # PCOV measures which lines the tests run, for SonarCloud.
+          coverage: pcov
 
       - name: Cache Composer packages
         uses: actions/cache@v4
@@ -54,8 +55,15 @@ jobs:
           cp .env.example .env
           php artisan key:generate
 
-      - name: Run the tests
-        run: php artisan test
+      - name: Run the tests with coverage
+        run: php artisan test --coverage-clover coverage/clover.xml
+
+      - name: Keep the coverage report for SonarCloud
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-coverage
+          path: NutriTrace/coverage/clover.xml
+          retention-days: 7
 
   pint:
     name: Code style (Pint)
@@ -123,7 +131,44 @@ jobs:
       # Not requirements.txt: it pulls PyTorch and CUDA (several GB), which the tests do not
       # need (they use a fake LLM). Training and the real LLM stay on the machine with the GPU.
       - name: Install Python dependencies
-        run: pip install fastapi uvicorn "pydantic>=2.5" scikit-learn numpy joblib pypdf pytest httpx
+        run: pip install fastapi uvicorn "pydantic>=2.5" scikit-learn numpy joblib pypdf pytest pytest-cov httpx
 
-      - name: Run the tests
-        run: python -X utf8 -m pytest -q tests
+      - name: Run the tests with coverage
+        run: python -X utf8 -m pytest -q tests --cov=nutritrace_ai --cov=server --cov-report=xml:coverage.xml
+
+      - name: Keep the coverage report for SonarCloud
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-coverage
+          path: NutriTrace/ai/coverage.xml
+          retention-days: 7
+
+  sonarcloud:
+    name: Code quality (SonarCloud)
+    runs-on: ubuntu-latest
+    # Uses the coverage reports of both test jobs.
+    needs: [laravel-tests, python-tests]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: SonarCloud tells new code from old code with git blame.
+          fetch-depth: 0
+
+      - name: Get the PHP coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: php-coverage
+          path: NutriTrace/coverage
+
+      - name: Get the Python coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: python-coverage
+          path: NutriTrace/ai
+
+      # Settings in sonar-project.properties at the repository root.
+      - name: Analyse with SonarCloud
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
