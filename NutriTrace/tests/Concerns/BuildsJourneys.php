@@ -82,7 +82,8 @@ trait BuildsJourneys
 
     protected function transform(Lot $source, float $used = 5000, float $output = 900, string $date = '2025-11-22'): Transformation
     {
-        $product = Product::factory()->create(['created_by' => $this->transformer->id, 'name' => 'Huile d\'olive extra vierge']);
+        // Fixed origin: a random one could be the city a catalog filter test looks for.
+        $product = Product::factory()->create(['created_by' => $this->transformer->id, 'name' => 'Huile d\'olive extra vierge', 'origin' => 'Sfax, Tunisie']);
 
         return app(TransformationService::class)->create($this->transformer, [
             'output_product_id' => $product->id,
