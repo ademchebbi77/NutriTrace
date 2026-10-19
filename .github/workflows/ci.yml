@@ -133,7 +133,8 @@ jobs:
       # need (they use a fake LLM). Training and the real LLM stay on the machine with the GPU.
       # Pinned versions, prebuilt wheels only: no package code runs during the installation.
       - name: Install Python dependencies
-        run: pip install --only-binary :all: -r requirements-ci.txt
+        run: |
+          pip install --only-binary :all: -r requirements-ci.txt
 
       - name: Run the tests with coverage
         run: python -X utf8 -m pytest -q tests --cov=nutritrace_ai --cov=server --cov-report=xml:coverage.xml
