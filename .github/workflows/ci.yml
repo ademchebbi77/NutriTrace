@@ -168,7 +168,7 @@ jobs:
 
       # Settings in sonar-project.properties at the repository root.
       - name: Analyse with SonarCloud
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
