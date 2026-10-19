@@ -131,10 +131,11 @@ jobs:
 
       # Not requirements.txt: it pulls PyTorch and CUDA (several GB), which the tests do not
       # need (they use a fake LLM). Training and the real LLM stay on the machine with the GPU.
-      # Pinned versions, prebuilt wheels only: no package code runs during the installation.
+      # Locked versions checked by their sha256, prebuilt wheels only: nothing else can be
+      # installed and no package code runs during the installation.
       - name: Install Python dependencies
         run: |
-          pip install --only-binary :all: -r requirements-ci.txt
+          pip install --require-hashes --only-binary :all: -r requirements-ci.txt
 
       - name: Run the tests with coverage
         run: python -X utf8 -m pytest -q tests --cov=nutritrace_ai --cov=server --cov-report=xml:coverage.xml

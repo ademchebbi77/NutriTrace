@@ -177,6 +177,43 @@ def test_training_status_and_refusals(client, monkeypatch):
     assert {a["module"] for a in models["adapters"]} == {"transport", "distribution", "transformation", "impact"}
 
 
+def test_training_starts_the_script_with_a_known_module(client, monkeypatch, tmp_path):
+    started = []
+    running = False
+
+    class FakeProcess:
+        def __init__(self, command, **options):
+            started.append(command)
+
+        def poll(self):
+            return None if running else 0  # None: still running
+
+    monkeypatch.setattr(server.train_status, "TRAIN_STATUS_PATH", tmp_path / "status.json")
+    monkeypatch.setattr(server, "TRAIN_LOG_PATH", tmp_path / "train.log")
+    monkeypatch.setattr(server, "NO_LLM", False)
+    monkeypatch.setattr(server.subprocess, "Popen", FakeProcess)
+    monkeypatch.setattr(server, "watch", lambda process: None)
+    monkeypatch.setattr(server, "unload_llm", lambda: None)
+    monkeypatch.setattr(server, "checkpoint_of", lambda module: True)
+
+    response = client.post("/train", json={"module": "impact", "epochs": 2})
+    assert response.status_code == 200 and response.json()["running"] is True and response.json()["module"] == "impact"
+    assert started[0][-4:] == ["--module", "impact", "--epochs", "2"]
+
+    client.post("/train", json={"module": "distribution", "epochs": 0.5, "resume": True})
+    assert started[1][-5:] == ["--module", "distribution", "--epochs", "0.5", "--resume"]
+
+    # Without an LLM (CPU machine), only the dataset and the scikit-learn models are trained.
+    monkeypatch.setattr(server, "NO_LLM", True)
+    client.post("/train", json={"module": "transport"})
+    assert started[2][-5:] == ["--module", "transport", "--epochs", "1", "--skip-llm"]
+
+    # One run at a time.
+    running = True
+    assert client.post("/train", json={"module": "transport"}).status_code == 409
+    assert len(started) == 3
+
+
 def test_transformation_check_for_the_transformer_and_the_admin(client):
     payload = tsynth.transformation(random.Random(4), "yield_too_high")
     body = client.post("/transformation/check", json={"transformation": payload, "explain": True, "audience": "transformer"}).json()
