@@ -35,7 +35,7 @@ jobs:
 
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
-          php-version: '8.4'
+          php-version: '8.3'
           extensions: mbstring, pdo_sqlite, sqlite3, intl, bcmath, gd, fileinfo
           # PCOV measures which lines the tests run, for SonarCloud.
           coverage: pcov
@@ -76,7 +76,7 @@ jobs:
 
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
-          php-version: '8.4'
+          php-version: '8.3'
           coverage: none
 
       - name: Cache Composer packages
@@ -146,6 +146,37 @@ jobs:
           name: python-coverage
           path: NutriTrace/ai/coverage.xml
           retention-days: 7
+
+  docker-build:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build Laravel app image (without pushing to registry)
+      - name: Build Laravel app image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./NutriTrace
+          file: ./NutriTrace/Dockerfile
+          push: false
+          tags: nutritrace-app:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build AI service image (without pushing to registry)
+      - name: Build AI service image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./NutriTrace/ai
+          file: ./NutriTrace/ai/Dockerfile
+          push: false
+          tags: nutritrace-ai:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   sonarcloud:
     name: Code quality (SonarCloud)

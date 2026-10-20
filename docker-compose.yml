@@ -1,0 +1,141 @@
+# Docker Compose configuration for NutriTrace
+# Start everything: docker compose up -d
+# View logs: docker compose logs -f
+# Stop: docker compose down
+
+services:
+  # MySQL database
+  db:
+    image: mysql:8.0
+    container_name: nutritrace-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: nutritrace
+      MYSQL_ROOT_PASSWORD: nutritrace_root_password
+      MYSQL_USER: nutritrace
+      MYSQL_PASSWORD: nutritrace_password
+    ports:
+      - "3306:3306"
+    volumes:
+      # Persist database data
+      - db_data:/var/lib/mysql
+      # Optional: custom MySQL configuration
+      # - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    networks:
+      - nutritrace-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Laravel application
+  app:
+    build:
+      context: ./NutriTrace
+      dockerfile: Dockerfile
+    container_name: nutritrace-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:80"
+    environment:
+      # Laravel environment variables
+      APP_NAME: NutriTrace
+      APP_ENV: production
+      APP_KEY: ${APP_KEY:-base64:PLACEHOLDER_GENERATE_WITH_php_artisan_key:generate}
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8000
+      
+      # Database configuration
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: nutritrace
+      DB_USERNAME: nutritrace
+      DB_PASSWORD: nutritrace_password
+      
+      # Session and cache
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      
+      # AI Service configuration (Option A: external AI service)
+      # Point to host machine where AI runs on GPU
+      AI_ENABLED: "true"
+      AI_SERVICE_URL: http://host.docker.internal:8001
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
+      AI_TIMEOUT: 90
+      
+      # Mail configuration (use 'log' for development)
+      MAIL_MAILER: log
+      MAIL_FROM_ADDRESS: contact@nutritrace.test
+      MAIL_FROM_NAME: NutriTrace
+      
+      # Localization
+      APP_LOCALE: fr
+      APP_FALLBACK_LOCALE: fr
+      APP_FAKER_LOCALE: fr_FR
+      
+      # Logging
+      LOG_CHANNEL: stack
+      LOG_LEVEL: info
+      
+    volumes:
+      # Persist storage (uploads, logs, cache)
+      - app_storage:/var/www/html/storage
+      # Optional: mount .env file for sensitive configuration
+      # - ./NutriTrace/.env:/var/www/html/.env:ro
+    networks:
+      - nutritrace-network
+    # Platform specification for compatibility
+    platform: linux/amd64
+    # Run Laravel setup commands on container start
+    command: >
+      sh -c "
+      php artisan config:cache &&
+      php artisan route:cache &&
+      php artisan view:cache &&
+      php artisan migrate --force &&
+      apache2-foreground
+      "
+
+  # AI Service (Option B: containerized - comment out if using external GPU service)
+  # Uncomment this section if you want to run AI service in Docker (CPU only)
+  # ai:
+  #   build:
+  #     context: ./NutriTrace/ai
+  #     dockerfile: Dockerfile
+  #   container_name: nutritrace-ai
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8001:8001"
+  #   environment:
+  #     SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
+  #     NO_LLM: "false"
+  #   volumes:
+  #     # Mount models directory (download or train models first)
+  #     - ./NutriTrace/ai/models:/app/models
+  #   networks:
+  #     - nutritrace-network
+  #   # For GPU support, add:
+  #   # deploy:
+  #   #   resources:
+  #   #     reservations:
+  #   #       devices:
+  #   #         - driver: nvidia
+  #   #           count: 1
+  #   #           capabilities: [gpu]
+
+networks:
+  nutritrace-network:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local
+  app_storage:
+    driver: local

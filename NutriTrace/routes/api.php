@@ -11,4 +11,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('trace/{token}', [TraceController::class, 'show'])->name('trace.show');
+    
+    // Health check endpoint for Docker and monitoring
+    Route::get('health', function () {
+        return response()->json([
+            'status' => 'ok',
+            'app' => config('app.name'),
+            'timestamp' => now()->toIso8601String(),
+        ]);
+    })->name('health');
 });

@@ -1,0 +1,50 @@
+# Python virtual environment (rebuilt in container)
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Large model files (6GB+ - too large for Docker image)
+# Models should be mounted as volume or downloaded at runtime
+models/*.joblib
+models/*.json
+models/checkpoints/
+
+# Data files (not needed in production container)
+data/
+
+# Testing
+tests/
+.pytest_cache/
+*.coverage
+coverage.xml
+
+# Development
+*.log
+.python-version
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Scripts (not needed in runtime)
+scripts/
+start.bat
+
+# Requirements files for different purposes
+requirements-ci.txt

@@ -98,9 +98,11 @@ Chaque score détaille ses composantes. Chaque valeur indique son origine : **me
 
 **Prérequis** : PHP 8.3+ (`pdo_mysql`, `gd`, `intl`, `zip`, `fileinfo`), Composer, Node.js 20+, MySQL 8 ou MariaDB 10.4+.
 
+### Installation locale (développement)
+
 ```bash
 git clone <url-du-depot> nutritrace
-cd nutritrace
+cd nutritrace/NutriTrace
 
 composer install
 npm install
@@ -117,6 +119,38 @@ composer dev
 ```
 
 ➡️ Ouvrez <http://localhost:8000>.
+
+### 🐳 Installation avec Docker (recommandé)
+
+Docker permet de faire tourner l'application de manière identique sur n'importe quelle machine, sans installer PHP, MySQL ou Node.js.
+
+**Prérequis** : Docker Desktop avec WSL 2 (Windows) ou Docker Engine (Linux/Mac).
+
+```bash
+# 1. Cloner le projet
+git clone <url-du-depot> nutritrace
+cd nutritrace
+
+# 2. Générer la clé d'application
+cd NutriTrace
+cp .env.example .env
+php artisan key:generate
+cd ..
+
+# 3. Lancer avec le script rapide (Windows)
+docker-start.bat
+
+# Ou (Linux/Mac)
+chmod +x docker-start.sh
+./docker-start.sh
+
+# Ou manuellement
+docker compose up -d
+```
+
+L'application sera disponible sur <http://localhost:8000>. Le service IA peut tourner soit sur votre PC (GPU), soit dans Docker (CPU).
+
+📖 **Guide complet** : voir [docker/README.md](docker/README.md) pour la configuration avancée, les variables d'environnement, le déploiement en production et le dépannage.
 
 > [!TIP]
 > Par défaut, les e-mails sont écrits dans `storage/logs/laravel.log` (`MAIL_MAILER=log`). Le lien de vérification s'y trouve. En développement, `php artisan user:verify {email}` valide une adresse directement.

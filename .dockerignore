@@ -1,0 +1,41 @@
+# Git and version control
+.git
+.github
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+README.md
+docs/
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+storage/logs/
+NutriTrace/storage/logs/
+
+# CI/CD artifacts
+coverage/
+.phpunit.result.cache
+phpunit.xml
+
+# SonarCloud
+.scannerwork/
+sonar-project.properties
