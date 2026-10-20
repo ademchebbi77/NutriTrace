@@ -1,121 +1,145 @@
 # Docker Compose configuration for NutriTrace
-# Start everything: docker compose up -d
+# First time: cp .env.docker.example .env, then fill in APP_KEY and the passwords.
+# Start everything: docker compose up -d --build
+# Demo data: docker compose exec app php artisan db:seed --force
 # View logs: docker compose logs -f
 # Stop: docker compose down
+
+# Shared by the app and the scheduler: same image, same configuration.
+x-app: &app
+  build:
+    context: ./NutriTrace
+    dockerfile: Dockerfile
+  image: nutritrace-app:local
+  restart: unless-stopped
+  environment: &app-environment
+    # Laravel environment variables
+    APP_NAME: NutriTrace
+    APP_ENV: ${APP_ENV:-production}
+    APP_KEY: ${APP_KEY:?Set APP_KEY in .env (php artisan key:generate --show)}
+    # Never true outside development: error pages would show the code and the settings.
+    APP_DEBUG: ${APP_DEBUG:-false}
+    APP_URL: ${APP_URL:-http://localhost:8000}
+
+    # Database configuration
+    DB_CONNECTION: mysql
+    DB_HOST: db
+    DB_PORT: 3306
+    DB_DATABASE: nutritrace
+    DB_USERNAME: nutritrace
+    DB_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+
+    # Session and cache
+    SESSION_DRIVER: database
+    CACHE_STORE: database
+    QUEUE_CONNECTION: database
+
+    # AI Service configuration (Option A: external AI service)
+    # Point to host machine where AI runs on GPU (NutriTrace/ai/start.bat)
+    AI_ENABLED: ${AI_ENABLED:-true}
+    AI_SERVICE_URL: ${AI_SERVICE_URL:-http://host.docker.internal:8001}
+    AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
+    AI_TIMEOUT: 90
+
+    # Mail configuration (use 'log' for development)
+    MAIL_MAILER: log
+    MAIL_FROM_ADDRESS: contact@nutritrace.test
+    MAIL_FROM_NAME: NutriTrace
+
+    # Localization
+    APP_LOCALE: fr
+    APP_FALLBACK_LOCALE: fr
+    APP_FAKER_LOCALE: fr_FR
+
+    # Logging: to the container output (docker compose logs app)
+    LOG_CHANNEL: stderr
+    LOG_LEVEL: ${LOG_LEVEL:-info}
+
+  volumes:
+    # Persist storage (uploads, cache)
+    - app_storage:/var/www/html/storage
+  extra_hosts:
+    # The PC running Docker, where the AI service listens (also on Linux).
+    - host.docker.internal:host-gateway
+  networks:
+    - nutritrace-network
+  # Platform specification for compatibility
+  platform: linux/amd64
 
 services:
   # MySQL database
   db:
-    image: mysql:8.0
+    image: mysql:8.0.44
     container_name: nutritrace-db
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: nutritrace
-      MYSQL_ROOT_PASSWORD: nutritrace_root_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
       MYSQL_USER: nutritrace
-      MYSQL_PASSWORD: nutritrace_password
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
     ports:
-      - "3306:3306"
+      # Only reachable from this PC, on 13306: 3306 (and 3307) are often taken by a local MySQL.
+      - "127.0.0.1:${DB_FORWARD_PORT:-13306}:3306"
     volumes:
       # Persist database data
       - db_data:/var/lib/mysql
-      # Optional: custom MySQL configuration
-      # - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
     networks:
       - nutritrace-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      # 127.0.0.1 (TCP), not localhost (socket): during its first start MySQL runs a temporary
+      # server without network, which answers on the socket while the app cannot connect yet.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 30s
 
   # Laravel application
   app:
-    build:
-      context: ./NutriTrace
-      dockerfile: Dockerfile
+    <<: *app
     container_name: nutritrace-app
-    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "8000:80"
+      # APP_PORT in .env if 8000 is taken (php artisan serve uses it too).
+      - "${APP_PORT:-8000}:8080"
     environment:
-      # Laravel environment variables
-      APP_NAME: NutriTrace
-      APP_ENV: local
-      APP_KEY: ${APP_KEY:-}
-      APP_DEBUG: "true"
-      APP_URL: http://localhost:8000
-      
-      # Database configuration
-      DB_CONNECTION: mysql
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_DATABASE: nutritrace
-      DB_USERNAME: nutritrace
-      DB_PASSWORD: nutritrace_password
-      
-      # Session and cache
-      SESSION_DRIVER: database
-      CACHE_STORE: database
-      QUEUE_CONNECTION: database
-      
-      # AI Service configuration (Option A: external AI service)
-      # Point to host machine where AI runs on GPU
-      AI_ENABLED: "true"
-      AI_SERVICE_URL: http://host.docker.internal:8001
-      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
-      AI_TIMEOUT: 90
-      
-      # Mail configuration (use 'log' for development)
-      MAIL_MAILER: log
-      MAIL_FROM_ADDRESS: contact@nutritrace.test
-      MAIL_FROM_NAME: NutriTrace
-      
-      # Localization
-      APP_LOCALE: fr
-      APP_FALLBACK_LOCALE: fr
-      APP_FAKER_LOCALE: fr_FR
-      
-      # Logging
-      LOG_CHANNEL: stack
-      LOG_LEVEL: info
-      
-    volumes:
-      # Persist storage (uploads, logs, cache)
-      - app_storage:/var/www/html/storage
-      # Optional: mount .env file for sensitive configuration
-      # - ./NutriTrace/.env:/var/www/html/.env:ro
-    networks:
-      - nutritrace-network
-    # Platform specification for compatibility
-    platform: linux/amd64
-    # Run Laravel setup commands on container start
-    command: >
-      sh -c "
-      php artisan config:cache &&
-      php artisan route:cache &&
-      php artisan view:cache &&
-      php artisan migrate --force &&
-      apache2-foreground
-      "
+      <<: *app-environment
+      # This container migrates the database when it starts (docker/entrypoint.sh).
+      RUN_MIGRATIONS: "true"
+
+  # Scheduled tasks (certifications:expire every night), same image as the app.
+  scheduler:
+    <<: *app
+    container_name: nutritrace-scheduler
+    command: ["php", "artisan", "schedule:work"]
+    environment:
+      <<: *app-environment
+      RUN_MIGRATIONS: "false"
+    depends_on:
+      app:
+        condition: service_healthy
+    # No web server here: healthy when the app boots and its scheduled tasks load.
+    healthcheck:
+      test: ["CMD", "php", "artisan", "schedule:list"]
+      interval: 60s
+      timeout: 10s
+      start_period: 20s
 
   # AI Service (Option B: containerized - comment out if using external GPU service)
-  # Uncomment this section if you want to run AI service in Docker (CPU only)
+  # Uncomment this section if you want to run AI service in Docker, then set
+  # AI_SERVICE_URL=http://ai:8001 in .env.
   # ai:
   #   build:
   #     context: ./NutriTrace/ai
   #     dockerfile: Dockerfile
   #   container_name: nutritrace-ai
   #   restart: unless-stopped
-  #   ports:
-  #     - "8001:8001"
   #   environment:
-  #     SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
-  #     NO_LLM: "false"
+  #     AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:-}
+  #     # "1" = without the LLM (CPU only): scores and template explanations.
+  #     NUTRITRACE_NO_LLM: "1"
   #   volumes:
   #     # Mount models directory (download or train models first)
   #     - ./NutriTrace/ai/models:/app/models

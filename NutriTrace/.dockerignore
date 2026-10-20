@@ -5,6 +5,17 @@ node_modules/
 # Build artifacts - generated during build
 public/build/
 public/hot
+public/storage
+
+# Files uploaded on the developer's PC (certificates, logos, avatars): never in the image
+storage/app/private/*
+!storage/app/private/.gitignore
+storage/app/public/*
+!storage/app/public/.gitignore
+
+# Coverage report and project documents
+coverage/
+docs/
 
 # Environment and secrets
 .env

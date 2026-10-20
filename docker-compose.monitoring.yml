@@ -5,17 +5,15 @@
 services:
   # Prometheus - metrics collection and alerting
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.15.0
     container_name: nutritrace-prometheus
     restart: unless-stopped
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
       - '--web.enable-lifecycle'
     ports:
-      - "9090:9090"
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
@@ -27,17 +25,17 @@ services:
 
   # Grafana - metrics visualization and dashboards
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.2.4
     container_name: nutritrace-grafana
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT:-3000}:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=nutritrace_grafana_admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=http://localhost:3000
-      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      - GF_SERVER_ROOT_URL=http://localhost:${GRAFANA_PORT:-3000}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
@@ -47,32 +45,32 @@ services:
       - prometheus
 
   # MySQL Exporter - export MySQL metrics to Prometheus
+  # (since v0.15 the connection is given by flags and MYSQLD_EXPORTER_PASSWORD, not DATA_SOURCE_NAME)
   mysql-exporter:
-    image: prom/mysqld-exporter:latest
+    image: prom/mysqld-exporter:v0.20.0
     container_name: nutritrace-mysql-exporter
     restart: unless-stopped
     command:
+      - '--mysqld.address=db:3306'
+      - '--mysqld.username=root'
       - '--collect.info_schema.tables'
       - '--collect.info_schema.innodb_metrics'
       - '--collect.info_schema.processlist'
       - '--collect.perf_schema.tablelocks'
     environment:
-      - DATA_SOURCE_NAME=root:nutritrace_root_password@(db:3306)/
-    ports:
-      - "9104:9104"
+      - MYSQLD_EXPORTER_PASSWORD=${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
     networks:
       - nutritrace-network
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   # cAdvisor - container metrics
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
     container_name: nutritrace-cadvisor
     restart: unless-stopped
     privileged: true
-    ports:
-      - "8080:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -86,15 +84,13 @@ services:
 
   # Node Exporter - system/hardware metrics
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.12.1
     container_name: nutritrace-node-exporter
     restart: unless-stopped
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    ports:
-      - "9100:9100"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro

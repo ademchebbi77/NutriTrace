@@ -29,7 +29,7 @@ scrape_configs:
     metrics_path: '/api/v1/metrics'
     scrape_interval: 30s
     static_configs:
-      - targets: ['app:80']
+      - targets: ['app:8080']
         labels:
           service: 'nutritrace'
           component: 'laravel-app'

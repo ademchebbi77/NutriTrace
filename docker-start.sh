@@ -34,8 +34,14 @@ if [ ! -f ".env" ]; then
         
         if [ -n "$APP_KEY" ]; then
             echo -e "${GREEN}[OK]${NC} APP_KEY found"
-            echo "APP_KEY=$APP_KEY" > .env
-            echo -e "${GREEN}[OK]${NC} Created .env file with APP_KEY"
+            {
+                echo "APP_KEY=$APP_KEY"
+                # Random passwords for the containers (MySQL, Grafana), kept in .env only.
+                echo "MYSQL_ROOT_PASSWORD=$(openssl rand -hex 16)"
+                echo "MYSQL_PASSWORD=$(openssl rand -hex 16)"
+                echo "GRAFANA_ADMIN_PASSWORD=$(openssl rand -hex 12)"
+            } > .env
+            echo -e "${GREEN}[OK]${NC} Created .env file with APP_KEY and random passwords"
         else
             echo -e "${RED}[ERROR]${NC} APP_KEY not found in NutriTrace/.env"
             echo "Please run: cd NutriTrace && php artisan key:generate"
@@ -128,7 +134,7 @@ echo " NutriTrace is ready!"
 echo "========================================"
 echo
 echo -e "- Application: ${GREEN}http://localhost:8000${NC}"
-echo "- Database: localhost:3306"
+echo "- Database: localhost:13306 (from this PC only)"
 if [[ "$AI_CHOICE" =~ ^[Aa]$ ]]; then
     echo -e "- AI Service: ${GREEN}http://localhost:8001${NC} (external)"
 else

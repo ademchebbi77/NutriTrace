@@ -1,4 +1,6 @@
 @echo off
+REM !variables! below need delayed expansion.
+setlocal enabledelayedexpansion
 REM Quick start script for NutriTrace with Docker
 REM This script helps you start NutriTrace containers with proper configuration
 
@@ -28,13 +30,22 @@ if not exist ".env" (
     if exist "NutriTrace\.env" (
         echo [INFO] Found NutriTrace\.env file
         
-        REM Extract APP_KEY from NutriTrace/.env
-        for /f "tokens=2 delims==" %%a in ('findstr /b "APP_KEY=" NutriTrace\.env') do set APP_KEY=%%a
-        
+        REM Extract APP_KEY from NutriTrace/.env (everything after the first "=": a key can end with "=")
+        for /f "tokens=1,* delims==" %%a in ('findstr /b "APP_KEY=" NutriTrace\.env') do set APP_KEY=%%b
+
         if defined APP_KEY (
             echo [OK] APP_KEY found in NutriTrace\.env
-            echo APP_KEY=!APP_KEY! > .env
-            echo [OK] Created .env file with APP_KEY
+            REM Random passwords for the containers (MySQL, Grafana), kept in .env only.
+            for /f %%p in ('powershell -NoProfile -Command "[guid]::NewGuid().ToString('N')"') do set ROOT_PW=%%p
+            for /f %%p in ('powershell -NoProfile -Command "[guid]::NewGuid().ToString('N')"') do set DB_PW=%%p
+            for /f %%p in ('powershell -NoProfile -Command "[guid]::NewGuid().ToString('N')"') do set GRAFANA_PW=%%p
+            > .env (
+                echo APP_KEY=!APP_KEY!
+                echo MYSQL_ROOT_PASSWORD=!ROOT_PW!
+                echo MYSQL_PASSWORD=!DB_PW!
+                echo GRAFANA_ADMIN_PASSWORD=!GRAFANA_PW!
+            )
+            echo [OK] Created .env file with APP_KEY and random passwords
         ) else (
             echo [WARNING] APP_KEY not found in NutriTrace\.env
             echo Please run: cd NutriTrace ^&^& php artisan key:generate
@@ -144,7 +155,7 @@ echo  NutriTrace is ready!
 echo ========================================
 echo.
 echo - Application: http://localhost:8000
-echo - Database: localhost:3306
+echo - Database: localhost:13306 (from this PC only)
 if /i "%AI_CHOICE%"=="A" (
     echo - AI Service: http://localhost:8001 (external)
 ) else (

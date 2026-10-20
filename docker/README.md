@@ -237,10 +237,11 @@ docker compose exec app chmod -R 755 storage
 ```
 
 ### Port conflicts
-If ports 8000, 3306, or 8001 are already in use, modify `docker-compose.yml`:
-```yaml
-ports:
-  - "8080:80"  # Change from 8000:80
+If a port is already in use, choose another one in the root `.env` (no need to edit `docker-compose.yml`):
+```env
+APP_PORT=8080          # app, default 8000
+DB_FORWARD_PORT=13307  # MySQL from this PC, default 13306
+GRAFANA_PORT=3001      # Grafana, default 3000
 ```
 
 ## 🔐 Security Notes

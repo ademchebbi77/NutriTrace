@@ -1,5 +1,6 @@
-# Continuous integration of NutriTrace: on every push and pull request to main,
-# four independent jobs check the Laravel app and the local AI service.
+# Continuous integration of NutriTrace: on every push and pull request to main, jobs check
+# the Laravel app and the local AI service, then build, scan and publish the Docker image
+# and send everything to SonarCloud (the run fails if its Quality Gate fails).
 #
 # The app lives in the NutriTrace/ folder of this repository: every job runs from there.
 # No database server and no AI service are needed: the Laravel tests use an in-memory
@@ -150,6 +151,8 @@ jobs:
   docker-build-scan-publish:
     name: Docker build, scan & publish
     runs-on: ubuntu-latest
+    # An image is only published when the code passed every check.
+    needs: [laravel-tests, pint, frontend, python-tests]
     permissions:
       contents: read
       packages: write
@@ -157,35 +160,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Third-party actions are pinned by commit SHA (SonarCloud githubactions:S7637).
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       # Login to GitHub Container Registry
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Extract metadata for tagging
+      # Tags: main, main-<sha> (the one Kubernetes deploys) and latest.
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/nutritrace-app
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
       # Build and push Laravel app image
       - name: Build and push Laravel app image
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ./NutriTrace
           file: ./NutriTrace/Dockerfile
@@ -196,11 +198,11 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64
 
-      # Scan image with Trivy for vulnerabilities
+      # Scan the exact image just pushed (by digest, not a tag another run could move).
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/nutritrace-app:${{ github.ref_name }}
+          image-ref: ghcr.io/${{ github.repository_owner }}/nutritrace-app@${{ steps.build.outputs.digest }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -208,18 +210,20 @@ jobs:
 
       # Upload Trivy results to GitHub Security tab
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@ce5e7eeac396d720fe2d802714996c8ce561e311 # v3
         with:
           sarif_file: 'trivy-results.sarif'
         if: github.event_name != 'pull_request'
 
       # Generate Trivy report for artifacts
       - name: Run Trivy scanner for report
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/nutritrace-app:${{ github.ref_name }}
+          image-ref: ghcr.io/${{ github.repository_owner }}/nutritrace-app@${{ steps.build.outputs.digest }}
           format: 'json'
           output: 'trivy-report.json'
+          # Trivy was installed by the first scan.
+          skip-setup-trivy: true
         if: github.event_name != 'pull_request'
 
       # Upload Trivy report as artifact
@@ -257,7 +261,8 @@ jobs:
           name: python-coverage
           path: NutriTrace/ai
 
-      # Settings in sonar-project.properties at the repository root.
+      # Settings in sonar-project.properties at the repository root. The job waits for the
+      # Quality Gate (sonar.qualitygate.wait): a failing gate turns the run red.
       - name: Analyse with SonarCloud
         uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
         env:

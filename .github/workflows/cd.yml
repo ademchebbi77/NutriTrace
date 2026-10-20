@@ -17,16 +17,16 @@ concurrency:
   group: cd-${{ github.ref }}
   cancel-in-progress: true
 
+# Read-only: deploying only calls the Render hook (SonarCloud githubactions:S8233).
 permissions:
   contents: read
-  packages: write
 
 jobs:
   deploy-render:
     name: Deploy to Render
     runs-on: ubuntu-latest
-    # Only deploy if CI passed
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    # Only deploy if CI passed on a push to main (not for a pull request run).
+    if: ${{ (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') || github.event_name == 'workflow_dispatch' }}
     
     steps:
       - uses: actions/checkout@v4
@@ -70,11 +70,13 @@ jobs:
     if: always()
     
     steps:
+      # Skipped (CI failed, nothing to deploy) is not an error: only a failed deployment is.
       - name: Deployment Status
+        env:
+          RESULT: ${{ needs.deploy-render.result }}
         run: |
-          if [ "${{ needs.deploy-render.result }}" = "success" ]; then
-            echo "✅ Deployment completed successfully!"
-          else
-            echo "❌ Deployment failed or was skipped"
-            exit 1
-          fi
+          case "$RESULT" in
+            success) echo "✅ Deployment completed successfully!" ;;
+            skipped) echo "⏭️ Deployment skipped: CI did not pass, nothing was deployed" ;;
+            *)       echo "❌ Deployment failed ($RESULT)"; exit 1 ;;
+          esac
