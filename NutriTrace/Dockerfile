@@ -33,6 +33,8 @@ RUN apt-get update && apt-get install -y \
     # For QR code generation (simplesoftwareio/simple-qrcode)
     libfreetype6-dev \
     libjpeg62-turbo-dev \
+    # Apply security updates
+    && apt-get upgrade -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
     pdo_mysql \
@@ -44,6 +46,11 @@ RUN apt-get update && apt-get install -y \
     intl \
     zip \
     fileinfo \
+    # Remove unnecessary packages to reduce attack surface
+    && apt-get remove -y \
+    openssh-client \
+    openssh-sftp-server \
+    && apt-get autoremove -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
