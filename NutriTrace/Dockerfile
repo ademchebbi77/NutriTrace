@@ -17,7 +17,7 @@ COPY public ./public
 RUN npm run build
 
 # Stage 2: PHP application with Apache
-FROM php:8.3-apache
+FROM php:8.4-apache
 
 # Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
