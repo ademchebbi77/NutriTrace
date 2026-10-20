@@ -39,11 +39,9 @@ jobs:
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
+    # No checkout: no code from the repository runs in this privileged job (SonarCloud
+    # githubactions:S7631). The one-line change goes through the GitHub API.
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-
       - name: Compute the image tag
         id: tag
         run: echo "tag=main-${SHA::7}" >> "$GITHUB_OUTPUT"
@@ -61,30 +59,35 @@ jobs:
             "https://ghcr.io/v2/${repository}/manifests/${TAG}"
           echo "$IMAGE:$TAG exists"
 
+      # Reads the file on main, replaces the tag and writes it back as a commit by
+      # github-actions[bot]. The write names the version it replaces (sha): if main changed
+      # in between, GitHub refuses it and the step reads the file again.
+      # [skip ci]: this commit only changes the deployed version. Commits made with
+      # GITHUB_TOKEN do not start workflows anyway, so there is no loop.
       - name: Write the new tag in the Kubernetes manifests
         env:
           TAG: ${{ steps.tag.outputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          sed -i -E "s|^(\s*newTag:).*|\1 ${TAG}|" "$KUSTOMIZATION"
-          grep -n "newTag" "$KUSTOMIZATION"
-
-      # [skip ci]: this commit only changes the deployed version. Commits made with
-      # GITHUB_TOKEN do not start workflows anyway, so there is no loop.
-      - name: Commit and push
-        env:
-          TAG: ${{ steps.tag.outputs.tag }}
-        run: |
-          if git diff --quiet; then
-            echo "Already deployed: $TAG"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "Deploy ${TAG} to Kubernetes [skip ci]"
-          # main may have moved since the checkout: replay the commit on top of it.
           for attempt in 1 2 3; do
-            git push origin HEAD:main && exit 0
-            git pull --rebase origin main
+            file=$(gh api "repos/$REPOSITORY/contents/$KUSTOMIZATION?ref=main")
+            current=$(jq -r .content <<< "$file" | base64 -d)
+            updated=$(sed -E "s|^(\s*newTag:).*|\1 ${TAG}|" <<< "$current")
+            if [ "$updated" = "$current" ]; then
+              echo "Already deployed: $TAG"
+              exit 0
+            fi
+            if gh api -X PUT "repos/$REPOSITORY/contents/$KUSTOMIZATION" \
+                 -f message="Deploy ${TAG} to Kubernetes [skip ci]" \
+                 -f content="$(base64 -w0 <<< "$updated")" \
+                 -f sha="$(jq -r .sha <<< "$file")" \
+                 -f branch=main > /dev/null; then
+              grep -n "newTag" <<< "$updated"
+              exit 0
+            fi
+            echo "main changed meanwhile, retrying ($attempt)"
+            sleep 3
           done
           exit 1
 
