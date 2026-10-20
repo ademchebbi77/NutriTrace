@@ -71,7 +71,7 @@ class FeedbackController extends Controller
         ]);
 
         $review->fill($data);
-        
+
         // Re-moderate the review after update
         $moderator->moderate($review);
         $review->save();

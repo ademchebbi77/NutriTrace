@@ -52,7 +52,7 @@ class UserController extends Controller
         }
 
         $userName = $user->name;
-        
+
         // Delete user (will cascade delete related data)
         $user->delete();
 

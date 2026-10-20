@@ -26,6 +26,20 @@ class AuthenticationTest extends TestCase
             'password' => 'password',
         ]);
 
+        // The factory creates a consumer: consumers land on the home page.
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('home', absolute: false));
+    }
+
+    public function test_professionals_land_on_their_dashboard_after_login(): void
+    {
+        $user = User::factory()->producer()->create();
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
     }

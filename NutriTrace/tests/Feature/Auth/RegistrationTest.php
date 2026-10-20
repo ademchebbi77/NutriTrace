@@ -28,8 +28,9 @@ class RegistrationTest extends TestCase
 
         $response = $this->post('/register', $this->payload());
 
+        // Consumers land on the home page, not on a dashboard.
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('home', absolute: false));
 
         $user = User::firstWhere('email', 'test@example.com');
 

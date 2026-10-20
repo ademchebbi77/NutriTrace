@@ -13,6 +13,7 @@ use App\Http\Controllers\PublicSite\FeedbackController;
 use App\Http\Controllers\PublicSite\HomeController;
 use App\Http\Controllers\PublicSite\TraceController;
 use App\Http\Controllers\RoleDashboardController;
+use App\Http\Controllers\TwoFactorAuthController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -61,17 +62,17 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Two-Factor Authentication
-    Route::get('/profile/two-factor-authentication', [App\Http\Controllers\TwoFactorAuthController::class, 'show'])->name('two-factor.show');
-    Route::post('/profile/two-factor-authentication', [App\Http\Controllers\TwoFactorAuthController::class, 'enable'])->name('two-factor.enable');
-    Route::delete('/profile/two-factor-authentication', [App\Http\Controllers\TwoFactorAuthController::class, 'disable'])->name('two-factor.disable');
-    Route::get('/profile/two-factor-recovery-codes', [App\Http\Controllers\TwoFactorAuthController::class, 'showRecoveryCodes'])->name('two-factor.recovery-codes');
-    Route::post('/profile/two-factor-recovery-codes', [App\Http\Controllers\TwoFactorAuthController::class, 'regenerateRecoveryCodes'])->name('two-factor.regenerate-recovery-codes');
-    
+    Route::get('/profile/two-factor-authentication', [TwoFactorAuthController::class, 'show'])->name('two-factor.show');
+    Route::post('/profile/two-factor-authentication', [TwoFactorAuthController::class, 'enable'])->name('two-factor.enable');
+    Route::delete('/profile/two-factor-authentication', [TwoFactorAuthController::class, 'disable'])->name('two-factor.disable');
+    Route::get('/profile/two-factor-recovery-codes', [TwoFactorAuthController::class, 'showRecoveryCodes'])->name('two-factor.recovery-codes');
+    Route::post('/profile/two-factor-recovery-codes', [TwoFactorAuthController::class, 'regenerateRecoveryCodes'])->name('two-factor.regenerate-recovery-codes');
+
     // 2FA Challenge (shown after login if 2FA enabled)
     Route::get('/two-factor-challenge', function () {
         return view('auth.two-factor-challenge');
     })->name('two-factor.challenge');
-    Route::post('/two-factor-challenge', [App\Http\Controllers\TwoFactorAuthController::class, 'verify'])->name('two-factor.verify');
+    Route::post('/two-factor-challenge', [TwoFactorAuthController::class, 'verify'])->name('two-factor.verify');
 });
 
 /*

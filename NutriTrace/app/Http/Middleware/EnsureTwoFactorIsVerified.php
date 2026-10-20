@@ -23,7 +23,7 @@ class EnsureTwoFactorIsVerified
         }
 
         // If user has 2FA enabled but hasn't verified in this session
-        if ($user && $user->two_factor_confirmed_at && !$request->session()->get('two_factor_verified')) {
+        if ($user && $user->two_factor_confirmed_at && ! $request->session()->get('two_factor_verified')) {
             return redirect()->route('two-factor.challenge');
         }
 

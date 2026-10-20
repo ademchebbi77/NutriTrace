@@ -12,7 +12,7 @@ class TwoFactorAuthController extends Controller
 
     public function __construct()
     {
-        $this->google2fa = new Google2FA();
+        $this->google2fa = new Google2FA;
     }
 
     /**
@@ -21,9 +21,9 @@ class TwoFactorAuthController extends Controller
     public function show()
     {
         $user = Auth::user();
-        
+
         // Generate secret if not exists
-        if (!$user->two_factor_secret) {
+        if (! $user->two_factor_secret) {
             $secret = $this->google2fa->generateSecretKey();
             $user->two_factor_secret = encrypt($secret);
             $user->save();
@@ -41,7 +41,7 @@ class TwoFactorAuthController extends Controller
         return view('profile.two-factor-authentication', [
             'qrCodeUrl' => $qrCodeUrl,
             'secret' => $secret,
-            'enabled' => !is_null($user->two_factor_confirmed_at)
+            'enabled' => ! is_null($user->two_factor_confirmed_at),
         ]);
     }
 
@@ -51,7 +51,7 @@ class TwoFactorAuthController extends Controller
     public function enable(Request $request)
     {
         $request->validate([
-            'code' => 'required|numeric|digits:6'
+            'code' => 'required|numeric|digits:6',
         ]);
 
         $user = Auth::user();
@@ -60,13 +60,13 @@ class TwoFactorAuthController extends Controller
         // Verify the code
         $valid = $this->google2fa->verifyKey($secret, $request->code);
 
-        if (!$valid) {
+        if (! $valid) {
             return back()->withErrors(['code' => 'Code de vérification invalide.']);
         }
 
         // Generate recovery codes
         $recoveryCodes = $this->generateRecoveryCodes();
-        
+
         $user->two_factor_recovery_codes = encrypt(json_encode($recoveryCodes));
         $user->two_factor_confirmed_at = now();
         $user->save();
@@ -82,7 +82,7 @@ class TwoFactorAuthController extends Controller
     public function disable(Request $request)
     {
         $request->validate([
-            'password' => 'required|current_password'
+            'password' => 'required|current_password',
         ]);
 
         $user = Auth::user();
@@ -102,14 +102,14 @@ class TwoFactorAuthController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->two_factor_confirmed_at) {
+        if (! $user->two_factor_confirmed_at) {
             return redirect()->route('two-factor.show');
         }
 
         $recoveryCodes = json_decode(decrypt($user->two_factor_recovery_codes));
 
         return view('profile.two-factor-recovery-codes', [
-            'recoveryCodes' => $recoveryCodes
+            'recoveryCodes' => $recoveryCodes,
         ]);
     }
 
@@ -119,12 +119,12 @@ class TwoFactorAuthController extends Controller
     public function regenerateRecoveryCodes(Request $request)
     {
         $request->validate([
-            'password' => 'required|current_password'
+            'password' => 'required|current_password',
         ]);
 
         $user = Auth::user();
         $recoveryCodes = $this->generateRecoveryCodes();
-        
+
         $user->two_factor_recovery_codes = encrypt(json_encode($recoveryCodes));
         $user->save();
 
@@ -142,6 +142,7 @@ class TwoFactorAuthController extends Controller
         for ($i = 0; $i < 8; $i++) {
             $codes[] = strtoupper(substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(8))), 0, 10));
         }
+
         return $codes;
     }
 
@@ -151,12 +152,12 @@ class TwoFactorAuthController extends Controller
     public function verify(Request $request)
     {
         $request->validate([
-            'code' => 'required|string'
+            'code' => 'required|string',
         ]);
 
         $user = Auth::user();
 
-        if (!$user->two_factor_confirmed_at) {
+        if (! $user->two_factor_confirmed_at) {
             return back()->withErrors(['code' => '2FA n\'est pas activé.']);
         }
 
@@ -166,20 +167,20 @@ class TwoFactorAuthController extends Controller
         $valid = $this->google2fa->verifyKey($secret, $request->code);
 
         // If TOTP fails, try recovery codes
-        if (!$valid) {
+        if (! $valid) {
             $recoveryCodes = json_decode(decrypt($user->two_factor_recovery_codes), true);
-            
+
             if (in_array(strtoupper($request->code), $recoveryCodes)) {
                 // Remove used recovery code
                 $recoveryCodes = array_diff($recoveryCodes, [strtoupper($request->code)]);
                 $user->two_factor_recovery_codes = encrypt(json_encode(array_values($recoveryCodes)));
                 $user->save();
-                
+
                 $valid = true;
             }
         }
 
-        if (!$valid) {
+        if (! $valid) {
             return back()->withErrors(['code' => 'Code invalide.']);
         }
 
