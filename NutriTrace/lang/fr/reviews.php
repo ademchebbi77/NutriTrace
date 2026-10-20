@@ -9,6 +9,7 @@ return [
     'form_title_edit' => 'Modifier mon avis',
     'submit' => 'Publier mon avis',
     'saved' => 'Votre avis a été enregistré.',
+    'updated' => 'Votre avis a été modifié.',
     'deleted' => 'L\'avis a été supprimé.',
     'delete' => 'Supprimer mon avis',
     'login_to_review' => 'Connectez-vous avec un compte consommateur pour donner votre avis.',

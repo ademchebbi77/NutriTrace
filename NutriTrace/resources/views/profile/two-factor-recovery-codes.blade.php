@@ -1,9 +1,13 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Codes de récupération 2FA') }}
-        </h2>
-    </x-slot>
+@extends('layouts.layout')
+
+@section('title', 'Codes de récupération 2FA')
+
+@section('content')
+
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{{ __('Codes de récupération 2FA') }}</h1>
+    </div>
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -45,7 +49,8 @@
 
                     <form method="POST" action="{{ route('two-factor.regenerate-recovery-codes') }}">
                         @csrf
-                        <input type="password" name="password" placeholder="Mot de passe" required 
+                        <label for="regenerate-password" class="sr-only">Mot de passe</label>
+                        <input type="password" id="regenerate-password" name="password" placeholder="Mot de passe" required 
                             class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                         <button type="submit" class="btn btn-warning ml-2"
                             onclick="return confirm('Cela invalidera tous les codes précédents. Continuer?')">
@@ -62,4 +67,5 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+
+@endsection
