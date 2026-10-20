@@ -1,0 +1,11 @@
+# The deployment Argo CD watches: the base with the image built by CI.
+# The CD workflow (.github/workflows/cd.yml) updates newTag after every green CI run on main.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+images:
+  - name: ghcr.io/ademchebbi77/nutritrace-app
+    newTag: main-bf6df8e

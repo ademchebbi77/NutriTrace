@@ -10,3 +10,6 @@ app_storage/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Secret values of the Kubernetes deployment (template: k8s/secrets.example.env).
+k8s/secrets.env

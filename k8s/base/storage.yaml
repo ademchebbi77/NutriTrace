@@ -1,0 +1,11 @@
+# Uploaded files (certificates, logos, avatars), shared by every app pod.
+# Minikube has a single node, so its hostPath provisioner serves ReadWriteMany.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-storage
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 2Gi

@@ -1,0 +1,54 @@
+# Scheduled tasks (certifications:expire every night): exactly one pod, same image as the app.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scheduler
+  labels:
+    app.kubernetes.io/name: nutritrace-scheduler
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  replicas: 1
+  # Recreate: never two schedulers at once, a task would run twice.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nutritrace-scheduler
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nutritrace-scheduler
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 33
+        runAsGroup: 33
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: scheduler
+          image: ghcr.io/ademchebbi77/nutritrace-app
+          args: ["php", "artisan", "schedule:work"]
+          envFrom:
+            - configMapRef: { name: nutritrace-config }
+          env:
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef: { name: nutritrace-secrets, key: APP_KEY }
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: nutritrace-secrets, key: DB_PASSWORD }
+          # No web server here: alive while the app boots and its scheduled tasks load.
+          livenessProbe:
+            exec:
+              command: ["php", "artisan", "schedule:list"]
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }

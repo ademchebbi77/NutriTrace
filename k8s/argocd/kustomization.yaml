@@ -1,0 +1,11 @@
+# Argo CD in the cluster, at a fixed version. Install (server-side: its CRDs are large):
+#   kubectl apply -k k8s/argocd --server-side --force-conflicts
+# then the NutriTrace application:  kubectl apply -f k8s/argocd/application.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argocd
+
+resources:
+  - namespace.yaml
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.5/manifests/install.yaml

@@ -1,0 +1,39 @@
+# Settings of the Laravel app that are not secret. The secret ones (APP_KEY, passwords,
+# AI token) are in the Secret "nutritrace-secrets", created from k8s/secrets.env.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nutritrace-config
+data:
+  APP_NAME: NutriTrace
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_URL: http://nutritrace.127.0.0.1.nip.io:8088
+  APP_LOCALE: fr
+  APP_FALLBACK_LOCALE: fr
+  APP_FAKER_LOCALE: fr_FR
+
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  DB_DATABASE: nutritrace
+  DB_USERNAME: nutritrace
+
+  # Shared by every pod through MySQL: a user stays logged in whichever pod answers.
+  SESSION_DRIVER: database
+  CACHE_STORE: database
+  QUEUE_CONNECTION: database
+
+  MAIL_MAILER: log
+  MAIL_FROM_ADDRESS: contact@nutritrace.test
+  MAIL_FROM_NAME: NutriTrace
+
+  # Logs go to the pod output: kubectl logs.
+  LOG_CHANNEL: stderr
+  LOG_LEVEL: info
+
+  # Local AI service, outside the cluster on the PC with the GPU (NutriTrace/ai/start.bat).
+  # Minikube resolves host.minikube.internal to that PC.
+  AI_ENABLED: "true"
+  AI_SERVICE_URL: http://host.minikube.internal:8001
+  AI_TIMEOUT: "90"

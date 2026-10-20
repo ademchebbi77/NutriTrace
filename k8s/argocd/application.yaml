@@ -1,0 +1,34 @@
+# Continuous deployment (GitOps): Argo CD watches k8s/overlays/minikube on the main branch of
+# the repository and applies every change to the cluster. The CD workflow changes the image
+# tag there after each green CI run, so a push to main ends up deployed without any command.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nutritrace
+  namespace: argocd
+  finalizers:
+    # Deleting the Application also deletes what it deployed.
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ademchebbi77/NutriTrace.git
+    targetRevision: main
+    path: k8s/overlays/minikube
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nutritrace
+  syncPolicy:
+    automated:
+      # Removes from the cluster what was removed from git.
+      prune: true
+      # Puts back what someone changed by hand in the cluster.
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

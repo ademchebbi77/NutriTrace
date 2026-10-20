@@ -1,0 +1,26 @@
+# Entry point of the site through the NGINX ingress controller (minikube addon "ingress").
+# nutritrace.127.0.0.1.nip.io is a public DNS name that points to 127.0.0.1: no hosts file
+# to edit. See k8s/README.md to open it from the PC.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nutritrace
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    # Certificates (PDF), logos and avatars up to 4 MB, plus the form fields.
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+    # Questions to the local AI can take up to 90 seconds.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: nutritrace.127.0.0.1.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app
+                port:
+                  name: http

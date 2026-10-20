@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nutritrace
+  annotations:
+    # Argo CD sync order: the namespace first.
+    argocd.argoproj.io/sync-wave: "-1"

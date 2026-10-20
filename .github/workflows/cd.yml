@@ -1,5 +1,8 @@
-# Continuous Deployment: automatically deploy to Render when CI passes on main branch
-# This workflow triggers after successful CI completion
+# Continuous Deployment (GitOps) to the Kubernetes cluster.
+# When CI passes on main, it has published the image ghcr.io/<owner>/nutritrace-app:main-<sha>.
+# This workflow writes that tag into k8s/overlays/minikube/kustomization.yaml and commits it;
+# Argo CD, running inside the cluster, sees the commit and rolls the new version out.
+# (GitHub cannot reach a cluster on a PC: the cluster pulls from git instead.)
 
 name: CD
 
@@ -9,74 +12,110 @@ on:
     types:
       - completed
     branches: [main]
-  # Manual deployment trigger
+  # Manual deployment trigger: deploys the image of the current main commit.
   workflow_dispatch:
 
-# Cancel in-progress deployments for the same branch
+# One deployment at a time, the newest wins.
 concurrency:
   group: cd-${{ github.ref }}
   cancel-in-progress: true
 
-# Read-only: deploying only calls the Render hook (SonarCloud githubactions:S8233).
+# Read-only by default; only the job that commits the new tag can write (SonarCloud githubactions:S8233).
 permissions:
   contents: read
 
 jobs:
-  deploy-render:
-    name: Deploy to Render
+  update-manifests:
+    name: Deploy to Kubernetes (Argo CD)
     runs-on: ubuntu-latest
     # Only deploy if CI passed on a push to main (not for a pull request run).
     if: ${{ (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') || github.event_name == 'workflow_dispatch' }}
-    
+    permissions:
+      contents: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/nutritrace-app
+      KUSTOMIZATION: k8s/overlays/minikube/kustomization.yaml
+      # The commit CI tested (workflow_run) or the current main (manual run).
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
-      - name: Deploy to Render
+      - name: Compute the image tag
+        id: tag
+        run: echo "tag=main-${SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # Never point the cluster to an image that does not exist.
+      - name: Check the image was published
         env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "⚠️ RENDER_DEPLOY_HOOK_URL not configured yet"
-            echo "This will be set up when you create your Render service"
+          repository="${IMAGE#ghcr.io/}"
+          token=$(curl -fsS "https://ghcr.io/token?scope=repository:${repository}:pull" | jq -r .token)
+          curl -fsS -o /dev/null \
+            -H "Authorization: Bearer $token" \
+            -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json" \
+            "https://ghcr.io/v2/${repository}/manifests/${TAG}"
+          echo "$IMAGE:$TAG exists"
+
+      - name: Write the new tag in the Kubernetes manifests
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          sed -i -E "s|^(\s*newTag:).*|\1 ${TAG}|" "$KUSTOMIZATION"
+          grep -n "newTag" "$KUSTOMIZATION"
+
+      # [skip ci]: this commit only changes the deployed version. Commits made with
+      # GITHUB_TOKEN do not start workflows anyway, so there is no loop.
+      - name: Commit and push
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if git diff --quiet; then
+            echo "Already deployed: $TAG"
             exit 0
           fi
-          
-          echo "🚀 Triggering Render deployment..."
-          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$RENDER_DEPLOY_HOOK_URL")
-          
-          if [ "$response" = "200" ] || [ "$response" = "201" ]; then
-            echo "✅ Deployment triggered successfully!"
-            echo "🔗 Check deployment status at: https://dashboard.render.com/"
-          else
-            echo "❌ Deployment failed with HTTP $response"
-            exit 1
-          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Deploy ${TAG} to Kubernetes [skip ci]"
+          # main may have moved since the checkout: replay the commit on top of it.
+          for attempt in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            git pull --rebase origin main
+          done
+          exit 1
 
       - name: Deployment Summary
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          echo "### 🚀 Deployment Status" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: Production (Render)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Check deployment status at [Render Dashboard](https://dashboard.render.com/)" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### 🚀 Deployment"
+            echo ""
+            echo "- **Image**: \`$IMAGE:$TAG\`"
+            echo "- **Commit**: $SHA"
+            echo "- **Target**: Kubernetes (Minikube), applied by Argo CD from \`k8s/overlays/minikube\`"
+            echo "- **Triggered by**: ${{ github.actor }}"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   notify-deployment:
     name: Notify Deployment Status
     runs-on: ubuntu-latest
-    needs: [deploy-render]
+    needs: [update-manifests]
     if: always()
-    
+
     steps:
       # Skipped (CI failed, nothing to deploy) is not an error: only a failed deployment is.
       - name: Deployment Status
         env:
-          RESULT: ${{ needs.deploy-render.result }}
+          RESULT: ${{ needs.update-manifests.result }}
+          TAG: ${{ needs.update-manifests.outputs.tag }}
         run: |
           case "$RESULT" in
-            success) echo "✅ Deployment completed successfully!" ;;
+            success) echo "✅ $TAG handed to Argo CD: it will be live in the cluster within ~3 minutes" ;;
             skipped) echo "⏭️ Deployment skipped: CI did not pass, nothing was deployed" ;;
             *)       echo "❌ Deployment failed ($RESULT)"; exit 1 ;;
           esac

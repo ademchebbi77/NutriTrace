@@ -1,0 +1,46 @@
+# Database migrations, run once per deployment before the new app pods start.
+# With Argo CD it is a Sync hook in wave 1: after MySQL (wave 0), before the app (wave 2),
+# and recreated at every sync. It retries while MySQL is still starting.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nutritrace-migrate
+  labels:
+    app.kubernetes.io/name: nutritrace-migrate
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nutritrace-migrate
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 33
+        runAsGroup: 33
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: migrate
+          image: ghcr.io/ademchebbi77/nutritrace-app
+          args: ["php", "artisan", "migrate", "--force"]
+          envFrom:
+            - configMapRef: { name: nutritrace-config }
+          env:
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef: { name: nutritrace-secrets, key: APP_KEY }
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: nutritrace-secrets, key: DB_PASSWORD }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }

@@ -1,0 +1,21 @@
+# NutriTrace on Kubernetes: everything the app needs, apart from the Secret (created by hand,
+# see k8s/README.md) and the local AI service (it stays on the PC with the GPU).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nutritrace
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: nutritrace
+    includeSelectors: false
+
+resources:
+  - namespace.yaml
+  - config.yaml
+  - mysql.yaml
+  - storage.yaml
+  - migrate-job.yaml
+  - app.yaml
+  - scheduler.yaml
+  - ingress.yaml

@@ -1,0 +1,115 @@
+# The Laravel web app: at least 2 pods behind the "app" Service, more under load (HPA).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  labels:
+    app.kubernetes.io/name: nutritrace-app
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  # No "replicas": the HorizontalPodAutoscaler below decides (2 to 4 pods).
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # A new pod must be ready before an old one stops: no downtime during an update.
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nutritrace-app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nutritrace-app
+    spec:
+      automountServiceAccountToken: false
+      # The image runs as www-data (uid 33); fsGroup lets it write to the shared volume.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 33
+        runAsGroup: 33
+        fsGroup: 33
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: app
+          image: ghcr.io/ademchebbi77/nutritrace-app
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef: { name: nutritrace-config }
+          env:
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef: { name: nutritrace-secrets, key: APP_KEY }
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: nutritrace-secrets, key: DB_PASSWORD }
+            - name: AI_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef: { name: nutritrace-secrets, key: AI_SERVICE_TOKEN, optional: true }
+          # Startup: caches the configuration (docker/entrypoint.sh) before Apache answers.
+          startupProbe:
+            httpGet: { path: /up, port: http }
+            periodSeconds: 5
+            failureThreshold: 30
+          # Ready: receives traffic from the Service.
+          readinessProbe:
+            httpGet: { path: /up, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 3
+          # Alive: restarted if Laravel stops answering.
+          livenessProbe:
+            httpGet: { path: /api/v1/health, port: http }
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 100m, memory: 192Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          volumeMounts:
+            - name: storage
+              mountPath: /var/www/html/storage/app
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: app-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  labels:
+    app.kubernetes.io/name: nutritrace-app
+spec:
+  selector:
+    app.kubernetes.io/name: nutritrace-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+# 2 pods at rest, up to 4 when the average CPU goes over 70 % of the request (metrics-server).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
