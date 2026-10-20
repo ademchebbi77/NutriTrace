@@ -167,16 +167,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Build AI service image (without pushing to registry)
-      - name: Build AI service image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./NutriTrace/ai
-          file: ./NutriTrace/ai/Dockerfile
-          push: false
-          tags: nutritrace-ai:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      # Skip AI service build in CI - it's too large (3GB+ of CUDA dependencies)
+      # AI Docker image should be built locally or in production with GPU access
 
   sonarcloud:
     name: Code quality (SonarCloud)
