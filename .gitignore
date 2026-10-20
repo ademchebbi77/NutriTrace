@@ -1,0 +1,12 @@
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+
+# Docker volumes
+db_data/
+app_storage/
+
+# OS files
+.DS_Store
+Thumbs.db
