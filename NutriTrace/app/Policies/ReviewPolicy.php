@@ -20,4 +20,9 @@ class ReviewPolicy
     {
         return $review->user_id === $user->id || $user->isAdmin();
     }
+
+    public function update(User $user, Review $review): bool
+    {
+        return $review->user_id === $user->id;
+    }
 }

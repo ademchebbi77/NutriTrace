@@ -247,6 +247,7 @@ return [
         'held' => 'Merci ! Votre avis sera publié après vérification par notre équipe.',
         'own_pending' => 'Votre avis est en attente de vérification avant publication.',
         'own_rejected' => 'Votre avis n\'a pas été publié : il ne respecte pas nos règles (propos injurieux, publicité, hors sujet ou données personnelles). Vous pouvez le modifier.',
+        'own_approved' => 'Votre avis a été publié avec succès.',
         'labels' => [
             'ok' => 'Conforme',
             'insult' => 'Propos injurieux',

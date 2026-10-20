@@ -34,6 +34,11 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
+        // Redirect consumers to home page, others to their dashboard
+        if ($user->role === UserRole::CONSOMMATEUR) {
+            return redirect(route('home', absolute: false));
+        }
+
         return redirect(route('dashboard', absolute: false));
     }
 }

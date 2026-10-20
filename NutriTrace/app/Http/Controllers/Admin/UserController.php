@@ -41,4 +41,21 @@ class UserController extends Controller
 
         return back()->with('success', __($organization->is_verified ? 'account.admin.org_verified' : 'account.admin.org_unverified', ['name' => $organization->name]));
     }
+
+    public function destroy(User $user): RedirectResponse
+    {
+        Gate::authorize('delete', $user);
+
+        // Prevent admin from deleting themselves
+        if ($user->id === auth()->id()) {
+            return back()->withErrors(['error' => 'Vous ne pouvez pas supprimer votre propre compte.']);
+        }
+
+        $userName = $user->name;
+        
+        // Delete user (will cascade delete related data)
+        $user->delete();
+
+        return back()->with('success', "L'utilisateur {$userName} a été supprimé avec succès.");
+    }
 }

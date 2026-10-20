@@ -41,6 +41,7 @@ Route::post('/trace/{token}/assistant', [AssistantController::class, 'ask'])->mi
 // Actions of a signed-in visitor on the public pages.
 Route::middleware(['auth', 'verified', 'active', 'throttle:20,1'])->group(function () {
     Route::post('/trace/{token}/avis', [FeedbackController::class, 'review'])->name('trace.review');
+    Route::patch('/avis/{review}', [FeedbackController::class, 'updateReview'])->name('reviews.update');
     Route::delete('/avis/{review}', [FeedbackController::class, 'destroyReview'])->name('reviews.destroy');
     Route::post('/trace/{token}/signalement', [FeedbackController::class, 'report'])->name('trace.report');
     Route::post('/produits/{product}/favori', [FeedbackController::class, 'toggleFavorite'])->name('favorites.toggle');
@@ -58,6 +59,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Two-Factor Authentication
+    Route::get('/profile/two-factor-authentication', [App\Http\Controllers\TwoFactorAuthController::class, 'show'])->name('two-factor.show');
+    Route::post('/profile/two-factor-authentication', [App\Http\Controllers\TwoFactorAuthController::class, 'enable'])->name('two-factor.enable');
+    Route::delete('/profile/two-factor-authentication', [App\Http\Controllers\TwoFactorAuthController::class, 'disable'])->name('two-factor.disable');
+    Route::get('/profile/two-factor-recovery-codes', [App\Http\Controllers\TwoFactorAuthController::class, 'showRecoveryCodes'])->name('two-factor.recovery-codes');
+    Route::post('/profile/two-factor-recovery-codes', [App\Http\Controllers\TwoFactorAuthController::class, 'regenerateRecoveryCodes'])->name('two-factor.regenerate-recovery-codes');
+    
+    // 2FA Challenge (shown after login if 2FA enabled)
+    Route::get('/two-factor-challenge', function () {
+        return view('auth.two-factor-challenge');
+    })->name('two-factor.challenge');
+    Route::post('/two-factor-challenge', [App\Http\Controllers\TwoFactorAuthController::class, 'verify'])->name('two-factor.verify');
 });
 
 /*
@@ -83,6 +97,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
 
         Route::get('/utilisateurs', [Admin\UserController::class, 'index'])->name('users.index');
         Route::patch('/utilisateurs/{user}/activation', [Admin\UserController::class, 'toggleActive'])->name('users.toggle-active');
+        Route::delete('/utilisateurs/{user}', [Admin\UserController::class, 'destroy'])->name('users.destroy');
         Route::patch('/organisations/{organization}/verification', [Admin\UserController::class, 'toggleVerified'])->name('users.toggle-verified');
     });
 

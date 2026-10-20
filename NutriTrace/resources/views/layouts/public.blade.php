@@ -29,6 +29,10 @@
 
         {{-- Bundled as an ES module: page scripts pushed to the "scripts" stack must use <script type="module">. --}}
         @vite(['resources/assets/js/public/app.js'])
+        
+        {{-- SweetAlert2 for beautiful confirm dialogs --}}
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        
         @stack('scripts')
     </body>
 </html>

@@ -28,6 +28,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Redirect consumers to home page, others to their dashboard
+        if ($request->user()->role === \App\Enums\UserRole::CONSOMMATEUR) {
+            return redirect()->intended(route('home', absolute: false));
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

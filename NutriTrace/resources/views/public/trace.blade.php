@@ -403,17 +403,70 @@
                     @forelse ($reviews as $review)
                         <div class="card mb-3">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between">
-                                    <span class="fw-bolder">{{ \Illuminate\Support\Str::before($review->user->name, ' ') }}</span>
-                                    <span class="small text-muted">{{ $review->updated_at->format('d/m/Y') }}</span>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-bolder">{{ \Illuminate\Support\Str::before($review->user->name, ' ') }}</span>
+                                        <span class="small text-muted">{{ $review->updated_at->format('d/m/Y') }}</span>
+                                    </div>
+                                    @can('update', $review)
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#editReviewModal{{ $review->id }}" title="Modifier">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <form method="POST" action="{{ route('reviews.destroy', $review) }}" class="delete-review-form d-inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="button" class="btn btn-sm btn-outline-dark delete-review-btn" title="Supprimer">
+                                                    <i class="bi bi-trash3"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @endcan
                                 </div>
-                                <div class="text-warning" aria-hidden="true">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}</div>
+                                <div class="text-warning mb-1" aria-hidden="true">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}</div>
                                 <span class="visually-hidden">{{ __('reviews.stars', ['count' => $review->rating]) }}</span>
                                 @if ($review->comment)
-                                    <p class="mb-0 mt-1">{{ $review->comment }}</p>
+                                    <p class="mb-0">{{ $review->comment }}</p>
                                 @endif
                             </div>
                         </div>
+
+                        {{-- Edit Review Modal --}}
+                        @can('update', $review)
+                        <div class="modal fade" id="editReviewModal{{ $review->id }}" tabindex="-1" aria-labelledby="editReviewModalLabel{{ $review->id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form method="POST" action="{{ route('reviews.update', $review) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="editReviewModalLabel{{ $review->id }}">Modifier votre avis</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label for="rating{{ $review->id }}" class="form-label">Note</label>
+                                                <select class="form-select" name="rating" id="rating{{ $review->id }}" required>
+                                                    @foreach ([5, 4, 3, 2, 1] as $rating)
+                                                        <option value="{{ $rating }}" @selected($review->rating === $rating)>{{ str_repeat('★', $rating) }} ({{ $rating }}/5)</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="comment{{ $review->id }}" class="form-label">Commentaire (optionnel)</label>
+                                                <textarea class="form-control" name="comment" id="comment{{ $review->id }}" rows="3" maxlength="500">{{ $review->comment }}</textarea>
+                                                <div class="form-text">Maximum 500 caractères</div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        @endcan
                     @empty
                         <p class="text-muted">{{ __('reviews.none') }}</p>
                     @endforelse
@@ -615,5 +668,29 @@
         @if ($errors->report->isNotEmpty())
             new bootstrap.Modal(document.getElementById('reportModal')).show();
         @endif
+
+        // Delete review with SweetAlert2
+        document.querySelectorAll('.delete-review-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const form = this.closest('.delete-review-form');
+                
+                Swal.fire({
+                    title: 'Supprimer votre avis?',
+                    text: 'Cette action est irréversible.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Oui, supprimer',
+                    cancelButtonText: 'Annuler',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
     </script>
 @endpush

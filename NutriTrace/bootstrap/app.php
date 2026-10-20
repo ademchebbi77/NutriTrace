@@ -18,12 +18,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
             'active' => EnsureAccountIsActive::class,
+            'two-factor' => \App\Http\Middleware\EnsureTwoFactorIsVerified::class,
         ]);
 
         $middleware->redirectUsersTo(fn () => route('dashboard'));
 
         // Rate limit the public JSON API (limiter defined in AppServiceProvider).
         $middleware->throttleApi();
+        
+        // Add 2FA check after authentication for web routes
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsureTwoFactorIsVerified::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

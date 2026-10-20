@@ -23,6 +23,12 @@ class UserPolicy
 
     public function delete(User $user, User $model): bool
     {
+        // Admin can delete any user except themselves and other admins
+        if ($user->isAdmin()) {
+            return !$model->isAdmin() && !$user->is($model);
+        }
+        
+        // Users can delete their own account
         return $user->is($model);
     }
 

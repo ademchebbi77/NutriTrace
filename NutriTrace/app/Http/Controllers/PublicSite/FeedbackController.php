@@ -61,6 +61,27 @@ class FeedbackController extends Controller
         return back()->with('success', __('reviews.deleted'));
     }
 
+    public function updateReview(Request $request, Review $review, ReviewModerator $moderator): RedirectResponse
+    {
+        Gate::authorize('update', $review);
+
+        $data = $request->validate([
+            'rating' => ['required', 'integer', 'between:1,5'],
+            'comment' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $review->fill($data);
+        
+        // Re-moderate the review after update
+        $moderator->moderate($review);
+        $review->save();
+
+        return back()->with(
+            $review->isPublished() ? 'success' : 'warning',
+            $review->isPublished() ? __('reviews.updated') : __('ai.moderation.held'),
+        );
+    }
+
     public function report(Request $request, string $token, ReportService $reports): RedirectResponse
     {
         Gate::authorize('create', Report::class);
