@@ -1,0 +1,109 @@
+# Docker Compose extension for monitoring with Prometheus & Grafana
+# Usage: docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+# This extends the main docker-compose.yml with monitoring services
+
+services:
+  # Prometheus - metrics collection and alerting
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: nutritrace-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - nutritrace-network
+    depends_on:
+      - app
+
+  # Grafana - metrics visualization and dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: nutritrace-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=nutritrace_grafana_admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
+    networks:
+      - nutritrace-network
+    depends_on:
+      - prometheus
+
+  # MySQL Exporter - export MySQL metrics to Prometheus
+  mysql-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: nutritrace-mysql-exporter
+    restart: unless-stopped
+    command:
+      - '--collect.info_schema.tables'
+      - '--collect.info_schema.innodb_metrics'
+      - '--collect.info_schema.processlist'
+      - '--collect.perf_schema.tablelocks'
+    environment:
+      - DATA_SOURCE_NAME=root:nutritrace_root_password@(db:3306)/
+    ports:
+      - "9104:9104"
+    networks:
+      - nutritrace-network
+    depends_on:
+      - db
+
+  # cAdvisor - container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: nutritrace-cadvisor
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - nutritrace-network
+    devices:
+      - /dev/kmsg
+
+  # Node Exporter - system/hardware metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: nutritrace-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - nutritrace-network
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

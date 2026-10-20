@@ -1,0 +1,80 @@
+# Continuous Deployment: automatically deploy to Render when CI passes on main branch
+# This workflow triggers after successful CI completion
+
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches: [main]
+  # Manual deployment trigger
+  workflow_dispatch:
+
+# Cancel in-progress deployments for the same branch
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy-render:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    # Only deploy if CI passed
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "⚠️ RENDER_DEPLOY_HOOK_URL not configured yet"
+            echo "This will be set up when you create your Render service"
+            exit 0
+          fi
+          
+          echo "🚀 Triggering Render deployment..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$RENDER_DEPLOY_HOOK_URL")
+          
+          if [ "$response" = "200" ] || [ "$response" = "201" ]; then
+            echo "✅ Deployment triggered successfully!"
+            echo "🔗 Check deployment status at: https://dashboard.render.com/"
+          else
+            echo "❌ Deployment failed with HTTP $response"
+            exit 1
+          fi
+
+      - name: Deployment Summary
+        run: |
+          echo "### 🚀 Deployment Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Production (Render)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check deployment status at [Render Dashboard](https://dashboard.render.com/)" >> $GITHUB_STEP_SUMMARY
+
+  notify-deployment:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [deploy-render]
+    if: always()
+    
+    steps:
+      - name: Deployment Status
+        run: |
+          if [ "${{ needs.deploy-render.result }}" = "success" ]; then
+            echo "✅ Deployment completed successfully!"
+          else
+            echo "❌ Deployment failed or was skipped"
+            exit 1
+          fi

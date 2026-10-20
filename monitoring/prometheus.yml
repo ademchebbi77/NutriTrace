@@ -1,0 +1,59 @@
+# Prometheus configuration for NutriTrace monitoring
+global:
+  scrape_interval: 15s # Scrape metrics every 15 seconds
+  evaluation_interval: 15s # Evaluate rules every 15 seconds
+  external_labels:
+    monitor: 'nutritrace-monitor'
+    environment: 'production'
+
+# Alerting configuration (optional - configure Alertmanager later)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # NutriTrace Laravel application
+  - job_name: 'nutritrace-app'
+    metrics_path: '/api/v1/metrics'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['app:80']
+        labels:
+          service: 'nutritrace'
+          component: 'laravel-app'
+
+  # MySQL database (requires mysqld_exporter)
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysql-exporter:9104']
+        labels:
+          service: 'nutritrace'
+          component: 'database'
+
+  # Docker containers (requires cAdvisor)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: 'nutritrace'
+          component: 'containers'
+
+  # Node exporter for system metrics
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'nutritrace'
+          component: 'system'
