@@ -8,4 +8,4 @@ resources:
 
 images:
   - name: ghcr.io/ademchebbi77/nutritrace-app
-    newTag: main-3d9ee4d
+    newTag: main-09b2692
