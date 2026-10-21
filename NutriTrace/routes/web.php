@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountStatusController;
 use App\Http\Controllers\Admin;
+use App\Http\Controllers\ConsignmentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\Producer;
@@ -33,6 +34,8 @@ Route::middleware('throttle:public')->group(function () {
 
     // Public traceability page of a lot, target of the QR code.
     Route::get('/trace/{token}', [TraceController::class, 'show'])->name('trace.show');
+    // Public page of a transport's consignment note, reached by its QR code.
+    Route::get('/lettre-de-voiture/{token}', [ConsignmentController::class, 'show'])->name('consignment.show');
     Route::get('/trace/{token}/certifications/{certification}/preuve', [TraceController::class, 'proof'])->name('trace.proof');
 });
 

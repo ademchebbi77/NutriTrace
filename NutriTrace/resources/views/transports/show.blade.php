@@ -22,6 +22,10 @@
                     data-label="{{ __('transfers.transports.cancel_label', ['number' => $transport->lot->lot_number]) }}">
                     <i class="fas fa-ban fa-sm"></i> {{ __('transfers.transports.cancel') }}</button>
             @endcan
+            <a href="{{ area_route('transports.consignment', $transport) }}" class="btn btn-sm btn-success shadow-sm" target="_blank">
+                <i class="fas fa-file-signature fa-sm"></i> {{ __('transfers.consignment.button') }}</a>
+            <a href="{{ $transport->consignmentUrl() }}" class="btn btn-sm btn-outline-success shadow-sm" target="_blank">
+                <i class="fas fa-qrcode fa-sm"></i> {{ $transport->isHandedOver() ? __('transfers.consignment.handover') : __('transfers.consignment.sign_title') }}</a>
             <a href="{{ area_route('transports.index') }}" class="btn btn-sm btn-light shadow-sm">
                 <i class="fas fa-arrow-left fa-sm"></i> {{ __('ui.back') }}</a>
         </div>

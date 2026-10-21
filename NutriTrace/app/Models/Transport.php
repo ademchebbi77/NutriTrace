@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 #[ObservedBy(TransportObserver::class)]
 #[Fillable(['transport_type', 'distance_km', 'departure_date'])]
@@ -53,7 +54,39 @@ class Transport extends Model
             'origin_longitude' => 'float',
             'destination_latitude' => 'float',
             'destination_longitude' => 'float',
+            'handover_quantity' => 'float',
+            'handed_over_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Every transport has an electronic consignment note with a public QR code.
+        static::creating(function (Transport $transport) {
+            $transport->consignment_token ??= Str::random(40);
+            $transport->consignment_number ??= 'LV-'.now()->format('y').'-'.strtoupper(Str::random(6));
+        });
+    }
+
+    public function handedOverBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'handed_over_by');
+    }
+
+    public function consignmentUrl(): string
+    {
+        return route('consignment.show', $this->consignment_token);
+    }
+
+    public function isHandedOver(): bool
+    {
+        return $this->handed_over_at !== null;
+    }
+
+    /** Received minus sent (negative: missing goods); null before the hand-over. */
+    public function handoverGap(): ?float
+    {
+        return $this->isHandedOver() ? round($this->handover_quantity - $this->quantity_transported, 3) : null;
     }
 
     public function lot(): BelongsTo
